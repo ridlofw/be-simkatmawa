@@ -1,0 +1,78 @@
+<?php
+
+namespace App\Models;
+
+use App\Enums\Level;
+use App\Enums\StatusInternal;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Activitylog\LogOptions;
+use Spatie\Activitylog\Traits\LogsActivity;
+
+class Sertifikasi extends Model
+{
+    use SoftDeletes, LogsActivity;
+
+    protected $table = 'sertifikasi';
+
+    protected $fillable = [
+        'level',
+        'nama',
+        'penyelenggara',
+        'url_peserta',
+        'url_sertifikat',
+        'tgl_sertifikat',
+        'url_foto_upp',
+        'url_dokumen_undangan',
+        'keterangan',
+        'status_internal',
+        'alasan_penolakan',
+        'pusat_kemdikbud_id',
+        'created_by',
+        'approved_by',
+        'approved_at',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'level' => Level::class,
+            'status_internal' => StatusInternal::class,
+            'tgl_sertifikat' => 'date',
+            'approved_at' => 'datetime',
+        ];
+    }
+
+    public function getActivitylogOptions(): LogOptions
+    {
+        return LogOptions::defaults()
+            ->logAll()
+            ->logOnlyDirty()
+            ->useLogName('sertifikasi');
+    }
+
+    // ========== RELASI ==========
+
+    public function mahasiswa(): BelongsToMany
+    {
+        return $this->belongsToMany(Mahasiswa::class, 'sertifikasi_mahasiswa', 'sertifikasi_id', 'nim');
+    }
+
+    public function dosen(): BelongsToMany
+    {
+        return $this->belongsToMany(Dosen::class, 'sertifikasi_dosen', 'sertifikasi_id', 'nuptk')
+                    ->withPivot('url_surat_tugas');
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function approver(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+}
