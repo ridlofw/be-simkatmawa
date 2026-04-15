@@ -1,0 +1,86 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1\Auth;
+
+use App\Http\Controllers\Controller;
+use App\Traits\ApiResponse;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use App\Models\User;
+
+/**
+ * Controller Autentikasi (Kontrak_API_Frontend.md §A).
+ * Thin Controller — logika minimal, validasi via FormRequest.
+ */
+class AuthController extends Controller
+{
+    use ApiResponse;
+
+    /**
+     * [POST] Login — Mendapatkan token Sanctum.
+     */
+    public function login(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'password' => 'required|string',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return $this->errorResponse('Email atau password salah.', 401);
+        }
+
+        $token = $user->createToken('auth-token')->plainTextToken;
+
+        // Ambil identitas berdasarkan role
+        $identitas = null;
+        if ($user->role->value === 'mahasiswa' && $user->mahasiswa) {
+            $identitas = $user->mahasiswa->nim;
+        }
+
+        return $this->successResponse([
+            'token' => $token,
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role->value,
+                'identitas' => $identitas,
+            ],
+        ], 'Login berhasil.');
+    }
+
+    /**
+     * [GET] Me — Profil user yang sedang login.
+     */
+    public function me(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $identitas = null;
+        if ($user->role->value === 'mahasiswa' && $user->mahasiswa) {
+            $identitas = $user->mahasiswa->nim;
+        }
+
+        return $this->successResponse([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'role' => $user->role->value,
+            'identitas' => $identitas,
+        ], 'Profil berhasil diambil.');
+    }
+
+    /**
+     * [POST] Logout — Invalidasi token.
+     */
+    public function logout(Request $request): JsonResponse
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return $this->successResponse(null, 'Logout berhasil.');
+    }
+}
