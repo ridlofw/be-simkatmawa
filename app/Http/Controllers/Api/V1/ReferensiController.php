@@ -12,6 +12,7 @@ use App\Enums\StatusInternal;
 use App\Http\Controllers\Controller;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
+use Spatie\Permission\Models\Role;
 
 /**
  * Controller Referensi Enum (Kontrak_API_Frontend.md §B).
@@ -34,6 +35,7 @@ class ReferensiController extends Controller
             'bentuk' => array_column(Bentuk::cases(), 'value'),
             'jenis_rekognisi' => array_column(JenisRekognisi::cases(), 'value'),
             'status_internal' => array_column(StatusInternal::cases(), 'value'),
+            'roles' => Role::pluck('name')->toArray(), // Dari database Spatie
         ], 'Data referensi berhasil diambil.');
     }
 }

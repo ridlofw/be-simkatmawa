@@ -9,13 +9,16 @@ class UserResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        // Ambil role dari Spatie Permission
+        $role = $this->getRoleNames()->first();
+
         return [
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
-            'role' => $this->role,
+            'role' => $role,
             'identitas' => $this->when(
-                $this->role?->value === 'mahasiswa',
+                $role === 'mahasiswa',
                 fn() => $this->mahasiswa?->nim
             ),
             'created_at' => $this->created_at?->toISOString(),

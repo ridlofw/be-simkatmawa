@@ -71,7 +71,7 @@ Route::prefix('v1')->group(function () {
         // ==============================
         // D. ENDPOINT ADMIN
         // ==============================
-        Route::middleware('role:admin,superadmin')->prefix('admin')->group(function () {
+        Route::middleware('role:admin|superadmin')->prefix('admin')->group(function () {
             Route::get('/pengajuan/{tipeKegiatan}', [VerifikasiController::class, 'index']);
             Route::get('/pengajuan/{tipeKegiatan}/{id}', [VerifikasiController::class, 'show']);
             Route::post('/verifikasi/{tipeKegiatan}/{id}', [VerifikasiController::class, 'verifikasi']);

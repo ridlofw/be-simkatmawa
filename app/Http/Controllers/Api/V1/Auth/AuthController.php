@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 
@@ -36,9 +35,12 @@ class AuthController extends Controller
 
         $token = $user->createToken('auth-token')->plainTextToken;
 
+        // Ambil role dari Spatie Permission
+        $role = $user->getRoleNames()->first(); // 'mahasiswa', 'admin', 'superadmin'
+
         // Ambil identitas berdasarkan role
         $identitas = null;
-        if ($user->role->value === 'mahasiswa' && $user->mahasiswa) {
+        if ($role === 'mahasiswa' && $user->mahasiswa) {
             $identitas = $user->mahasiswa->nim;
         }
 
@@ -48,7 +50,7 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'role' => $user->role->value,
+                'role' => $role,
                 'identitas' => $identitas,
             ],
         ], 'Login berhasil.');
@@ -60,8 +62,10 @@ class AuthController extends Controller
     public function me(Request $request): JsonResponse
     {
         $user = $request->user();
+        $role = $user->getRoleNames()->first();
+
         $identitas = null;
-        if ($user->role->value === 'mahasiswa' && $user->mahasiswa) {
+        if ($role === 'mahasiswa' && $user->mahasiswa) {
             $identitas = $user->mahasiswa->nim;
         }
 
@@ -69,7 +73,7 @@ class AuthController extends Controller
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
-            'role' => $user->role->value,
+            'role' => $role,
             'identitas' => $identitas,
         ], 'Profil berhasil diambil.');
     }

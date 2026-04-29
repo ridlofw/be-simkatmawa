@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\UserRole;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,14 +13,16 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasApiTokens, HasUuids, SoftDeletes, LogsActivity;
+    use HasFactory, Notifiable, HasApiTokens, HasUuids, SoftDeletes, LogsActivity, HasRoles;
 
     /**
      * The attributes that are mass assignable.
+     * Kolom `role` DIHAPUS — role dikelola via Spatie Permission (model_has_roles).
      *
      * @var list<string>
      */
@@ -29,7 +30,6 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role',
     ];
 
     /**
@@ -52,7 +52,6 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'role' => UserRole::class,
         ];
     }
 
@@ -62,7 +61,7 @@ class User extends Authenticatable
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
-            ->logOnly(['name', 'email', 'role'])
+            ->logOnly(['name', 'email'])
             ->logOnlyDirty()
             ->useLogName('user');
     }

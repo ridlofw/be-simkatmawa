@@ -8,7 +8,8 @@ return new class extends Migration
 {
     /**
      * Run the migrations.
-     * Tabel users dengan UUID sebagai PK, role enum, dan Soft Deletes (PRD §2).
+     * Tabel users dengan UUID sebagai PK dan Soft Deletes (PRD §2).
+     * Kolom `role` DIHAPUS — role dikelola via Spatie Permission (model_has_roles).
      */
     public function up(): void
     {
@@ -18,7 +19,7 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->enum('role', ['superadmin', 'admin', 'mahasiswa'])->default('mahasiswa');
+            // Kolom `role` enum DIHAPUS → digantikan oleh tabel model_has_roles (Spatie Permission)
             $table->rememberToken();
             $table->timestamps();
             $table->softDeletes(); // Keamanan: data tidak pernah dihapus permanen
