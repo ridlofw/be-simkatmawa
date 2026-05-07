@@ -3,6 +3,10 @@
 namespace App\Http\Controllers\Api\V1\Mahasiswa;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Prestasi\StorePrestasiRequest;
+use App\Http\Resources\PrestasiCollection;
+use App\Http\Resources\PrestasiResource;
+use App\Services\Prestasi\PrestasiService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,22 +19,43 @@ class PrestasiController extends Controller
 {
     use ApiResponse;
 
+    public function __construct(
+        private readonly PrestasiService $prestasiService
+    ) {}
+
     /**
      * [GET] Daftar riwayat pengajuan prestasi mahasiswa.
+     * Scope: semua prestasi yang NIM mahasiswa login ada di pivot.
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request): JsonResponse|PrestasiCollection
     {
-        // TODO: Implementasi via PrestasiService
-        return $this->successResponse([], 'Riwayat pengajuan prestasi berhasil diambil.');
+        $user = $request->user();
+        $nim = $user->mahasiswa?->nim;
+
+        if (!$nim) {
+            return $this->errorResponse('Data mahasiswa tidak ditemukan untuk akun ini.', 404);
+        }
+
+        $filters = $request->only(['status', 'search']);
+        $prestasi = $this->prestasiService->getByMahasiswa($nim, $filters);
+
+        return new PrestasiCollection($prestasi);
     }
 
     /**
      * [POST] Buat pengajuan prestasi mandiri baru.
      */
-    public function store(Request $request): JsonResponse
+    public function store(StorePrestasiRequest $request): JsonResponse
     {
-        // TODO: Implementasi via PrestasiService + StorePrestasiRequest
-        return $this->createdResponse(null, 'Prestasi berhasil diajukan dan sedang menunggu verifikasi.');
+        $prestasi = $this->prestasiService->create(
+            $request->validated(),
+            $request->user()
+        );
+
+        return $this->createdResponse(
+            new PrestasiResource($prestasi),
+            'Prestasi berhasil diajukan dan sedang menunggu verifikasi.'
+        );
     }
 
     /**
@@ -38,25 +63,38 @@ class PrestasiController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        // TODO: Implementasi via PrestasiService
-        return $this->successResponse(null, 'Detail prestasi berhasil diambil.');
+        $prestasi = $this->prestasiService->findById($id);
+
+        return $this->successResponse(
+            new PrestasiResource($prestasi),
+            'Detail prestasi berhasil diambil.'
+        );
     }
 
     /**
-     * [PUT] Edit pengajuan prestasi (hanya jika PENDING/REJECTED).
+     * [PUT] Edit pengajuan prestasi (hanya jika PENDING/REJECTED + created_by).
      */
-    public function update(Request $request, int $id): JsonResponse
+    public function update(StorePrestasiRequest $request, int $id): JsonResponse
     {
-        // TODO: Implementasi via PrestasiService + state check
-        return $this->successResponse(null, 'Data pengajuan berhasil diperbarui.');
+        $prestasi = $this->prestasiService->update(
+            $id,
+            $request->validated(),
+            $request->user()
+        );
+
+        return $this->successResponse(
+            new PrestasiResource($prestasi),
+            'Data pengajuan berhasil diperbarui.'
+        );
     }
 
     /**
-     * [DELETE] Soft delete pengajuan prestasi (hanya jika PENDING).
+     * [DELETE] Soft delete pengajuan prestasi (hanya jika PENDING + created_by).
      */
-    public function destroy(int $id): JsonResponse
+    public function destroy(int $id, Request $request): JsonResponse
     {
-        // TODO: Implementasi via PrestasiService + state check
+        $this->prestasiService->delete($id, $request->user());
+
         return $this->successResponse(null, 'Pengajuan berhasil dibatalkan dan dihapus.');
     }
 }

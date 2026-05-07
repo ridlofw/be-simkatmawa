@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 | Versioning: v1 prefix (Kontrak_API_Frontend.md)
 | Auth: Laravel Sanctum Bearer Token
-| RBAC: role middleware (mahasiswa, admin, superadmin)
+| RBAC: Spatie Laravel Permission (role middleware)
 */
 
 Route::prefix('v1')->group(function () {
@@ -41,6 +41,10 @@ Route::prefix('v1')->group(function () {
 
         // B. REFERENSI ENUM (Global — semua role)
         Route::get('/referensi/enums', [ReferensiController::class, 'enums']);
+
+        // B2. LOOKUP DATA — Pencarian Mahasiswa & Dosen untuk form input
+        Route::get('/referensi/mahasiswa', [ReferensiController::class, 'searchMahasiswa']);
+        Route::get('/referensi/dosen', [ReferensiController::class, 'searchDosen']);
 
         // ==============================
         // C. ENDPOINT MAHASISWA
