@@ -3,44 +3,66 @@
 namespace App\Http\Controllers\Api\V1\Mahasiswa;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Sertifikasi\StoreSertifikasiRequest;
+use App\Http\Resources\SertifikasiCollection;
+use App\Http\Resources\SertifikasiResource;
+use App\Services\Sertifikasi\SertifikasiService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
  * Controller Sertifikasi — Endpoint Mahasiswa.
+ * Thin Controller: delegasi logika bisnis ke SertifikasiService.
  */
 class SertifikasiController extends Controller
 {
     use ApiResponse;
 
-    public function index(Request $request): JsonResponse
+    public function __construct(
+        private readonly SertifikasiService $sertifikasiService
+    ) {}
+
+    public function index(Request $request): JsonResponse|SertifikasiCollection
     {
-        // TODO: Implementasi via SertifikasiService
-        return $this->successResponse([], 'Riwayat pengajuan sertifikasi berhasil diambil.');
+        $user = $request->user();
+        $nim = $user->mahasiswa?->nim;
+
+        if (!$nim) {
+            return $this->errorResponse('Data mahasiswa tidak ditemukan untuk akun ini.', 404);
+        }
+
+        $filters = $request->only(['status', 'level', 'search']);
+        $sertifikasi = $this->sertifikasiService->getByMahasiswa($nim, $filters);
+
+        return new SertifikasiCollection($sertifikasi);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(StoreSertifikasiRequest $request): JsonResponse
     {
-        // TODO: Implementasi via SertifikasiService + StoreSertifikasiRequest
-        return $this->createdResponse(null, 'Sertifikasi berhasil diajukan dan sedang menunggu verifikasi.');
+        $sertifikasi = $this->sertifikasiService->create($request->validated(), $request->user());
+
+        return $this->createdResponse(
+            new SertifikasiResource($sertifikasi),
+            'Sertifikasi berhasil diajukan dan sedang menunggu verifikasi.'
+        );
     }
 
     public function show(int $id): JsonResponse
     {
-        // TODO: Implementasi via SertifikasiService
-        return $this->successResponse(null, 'Detail sertifikasi berhasil diambil.');
+        $sertifikasi = $this->sertifikasiService->findById($id);
+        return $this->successResponse(new SertifikasiResource($sertifikasi), 'Detail sertifikasi berhasil diambil.');
     }
 
-    public function update(Request $request, int $id): JsonResponse
+    public function update(StoreSertifikasiRequest $request, int $id): JsonResponse
     {
-        // TODO: Implementasi via SertifikasiService
-        return $this->successResponse(null, 'Data pengajuan berhasil diperbarui.');
+        $sertifikasi = $this->sertifikasiService->update($id, $request->validated(), $request->user());
+        return $this->successResponse(new SertifikasiResource($sertifikasi), 'Data pengajuan berhasil diperbarui.');
     }
 
-    public function destroy(int $id): JsonResponse
+    public function destroy(int $id, Request $request): JsonResponse
     {
-        // TODO: Implementasi via SertifikasiService
+        $this->sertifikasiService->delete($id, $request->user());
         return $this->successResponse(null, 'Pengajuan berhasil dibatalkan dan dihapus.');
     }
 }

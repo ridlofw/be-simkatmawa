@@ -39,9 +39,14 @@ class PrestasiService
             $q->where('mahasiswa.nim', $nim);
         })->with(['mahasiswa', 'dosen', 'creator:id,name']);
 
-        // Filter by status
+        // Filter by status (PENDING, APPROVED_UNSYNCED, REJECTED, dll)
         if (!empty($filters['status'])) {
             $query->where('status_internal', $filters['status']);
+        }
+
+        // Filter by kategori (OLAHRAGA, RISNOV, dll)
+        if (!empty($filters['kategori'])) {
+            $query->where('kategori', $filters['kategori']);
         }
 
         // Search by nama lomba
