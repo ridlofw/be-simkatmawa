@@ -112,7 +112,8 @@ class SertifikasiService
         if ($sertifikasi->created_by !== $user->id) {
             throw new AccessDeniedHttpException('Anda tidak memiliki izin untuk menghapus pengajuan ini.');
         }
-        if ($sertifikasi->status_internal !== StatusInternal::PENDING) {
+        $deletableStatuses = [StatusInternal::PENDING, StatusInternal::REJECTED];
+        if (!in_array($sertifikasi->status_internal, $deletableStatuses)) {
             throw new AccessDeniedHttpException('Pengajuan tidak dapat dihapus karena sudah diproses (status: ' . $sertifikasi->status_internal->value . ').');
         }
 

@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Api\V1\Admin\VerifikasiController;
 use App\Http\Controllers\Api\V1\Auth\AuthController;
-use App\Http\Controllers\Api\V1\Mahasiswa\DashboardController;
 use App\Http\Controllers\Api\V1\Mahasiswa\PrestasiController;
 use App\Http\Controllers\Api\V1\Mahasiswa\RekognisiController;
 use App\Http\Controllers\Api\V1\Mahasiswa\SertifikasiController;
@@ -51,9 +50,6 @@ Route::prefix('v1')->group(function () {
         // C. ENDPOINT MAHASISWA
         // ==============================
         Route::middleware('role:mahasiswa')->prefix('mahasiswa')->group(function () {
-            // Dashboard — Statistik + Aktivitas Terbaru
-            Route::get('/dashboard', [DashboardController::class, 'index']);
-
             // Prestasi Mandiri
             Route::get('/prestasi', [PrestasiController::class, 'index']);
             Route::post('/prestasi', [PrestasiController::class, 'store']);

@@ -44,9 +44,9 @@ class PrestasiService
             $query->where('status_internal', $filters['status']);
         }
 
-        // Filter by kategori (OLAHRAGA, RISNOV, dll)
-        if (!empty($filters['kategori'])) {
-            $query->where('kategori', $filters['kategori']);
+        // Filter by level (LOKAL, WILAYAH, NAS, INT)
+        if (!empty($filters['level'])) {
+            $query->where('level', $filters['level']);
         }
 
         // Search by nama lomba
@@ -208,8 +208,9 @@ class PrestasiService
             );
         }
 
-        // Guard 2: Hanya PENDING yang bisa dihapus mahasiswa
-        if ($prestasi->status_internal !== StatusInternal::PENDING) {
+        // Guard 2: Hanya PENDING atau REJECTED yang bisa dihapus mahasiswa
+        $deletableStatuses = [StatusInternal::PENDING, StatusInternal::REJECTED];
+        if (!in_array($prestasi->status_internal, $deletableStatuses)) {
             throw new AccessDeniedHttpException(
                 'Pengajuan tidak dapat dihapus karena sudah diproses (status: ' . $prestasi->status_internal->value . ').'
             );

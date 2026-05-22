@@ -32,7 +32,7 @@ class RekognisiController extends Controller
             return $this->errorResponse('Data mahasiswa tidak ditemukan untuk akun ini.', 404);
         }
 
-        $filters = $request->only(['status', 'jenis', 'search']);
+        $filters = $request->only(['status', 'level', 'search']);
         $rekognisi = $this->rekognisiService->getByMahasiswa($nim, $filters);
 
         return new RekognisiCollection($rekognisi);

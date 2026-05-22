@@ -24,8 +24,8 @@ class RekognisiService
         if (!empty($filters['status'])) {
             $query->where('status_internal', $filters['status']);
         }
-        if (!empty($filters['jenis'])) {
-            $query->where('jenis', $filters['jenis']);
+        if (!empty($filters['level'])) {
+            $query->where('level', $filters['level']);
         }
         if (!empty($filters['search'])) {
             $query->where('nama', 'like', '%' . $filters['search'] . '%');
@@ -112,7 +112,8 @@ class RekognisiService
         if ($rekognisi->created_by !== $user->id) {
             throw new AccessDeniedHttpException('Anda tidak memiliki izin untuk menghapus pengajuan ini.');
         }
-        if ($rekognisi->status_internal !== StatusInternal::PENDING) {
+        $deletableStatuses = [StatusInternal::PENDING, StatusInternal::REJECTED];
+        if (!in_array($rekognisi->status_internal, $deletableStatuses)) {
             throw new AccessDeniedHttpException('Pengajuan tidak dapat dihapus karena sudah diproses (status: ' . $rekognisi->status_internal->value . ').');
         }
 
