@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Mahasiswa\ActivityLogController;
 use App\Http\Controllers\Api\V1\Mahasiswa\PrestasiController;
 use App\Http\Controllers\Api\V1\Mahasiswa\RekognisiController;
 use App\Http\Controllers\Api\V1\Mahasiswa\SertifikasiController;
@@ -41,6 +42,12 @@ Route::middleware('role:mahasiswa')->group(function () {
         Route::get('/{id}', 'show');
         Route::put('/{id}', 'update');
         Route::delete('/{id}', 'destroy');
+    });
+
+    // --- Activity Log ---
+    Route::prefix('activity-log')->controller(ActivityLogController::class)->group(function () {
+        Route::get('/', 'index');
+        Route::get('/{id}', 'show');
     });
 
 });
