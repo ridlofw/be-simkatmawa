@@ -9,10 +9,7 @@ use Spatie\Permission\PermissionRegistrar;
 
 /**
  * Seeder untuk Role & Permission Spatie (PRD §2).
- * Menggantikan kolom `role` enum di tabel users.
- * Role disimpan di database agar dinamis dan fleksibel.
- *
- * Guard: 'web' (default Laravel, Sanctum compatible).
+ * Menggunakan firstOrCreate dan syncPermissions agar aman dijalankan berulang kali.
  */
 class RolePermissionSeeder extends Seeder
 {
@@ -21,42 +18,44 @@ class RolePermissionSeeder extends Seeder
         // Reset cache Spatie agar role/permission baru langsung berlaku
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // ========== BUAT PERMISSIONS DULU (sebelum assign ke role) ==========
-        // Mahasiswa permissions
-        $submitPengajuan = Permission::create(['name' => 'submit-pengajuan', 'guard_name' => 'web']);
-        $editPengajuan = Permission::create(['name' => 'edit-pengajuan', 'guard_name' => 'web']);
-        $deletePengajuan = Permission::create(['name' => 'delete-pengajuan', 'guard_name' => 'web']);
+        // ========== BUAT PERMISSIONS ==========
+        $permissions = [
+            'submit-pengajuan',
+            'edit-pengajuan',
+            'delete-pengajuan',
+            'approve-pengajuan',
+            'reject-pengajuan',
+            'view-antrean',
+            'manage-users',
+            'manage-settings',
+            'access-trash',
+            'force-delete'
+        ];
 
-        // Admin permissions
-        $approvePengajuan = Permission::create(['name' => 'approve-pengajuan', 'guard_name' => 'web']);
-        $rejectPengajuan = Permission::create(['name' => 'reject-pengajuan', 'guard_name' => 'web']);
-        $viewAntrean = Permission::create(['name' => 'view-antrean', 'guard_name' => 'web']);
-
-        // Superadmin permissions
-        $manageUsers = Permission::create(['name' => 'manage-users', 'guard_name' => 'web']);
-        $manageSettings = Permission::create(['name' => 'manage-settings', 'guard_name' => 'web']);
-        $accessTrash = Permission::create(['name' => 'access-trash', 'guard_name' => 'web']);
-        $forceDelete = Permission::create(['name' => 'force-delete', 'guard_name' => 'web']);
+        foreach ($permissions as $permissionName) {
+            Permission::firstOrCreate(['name' => $permissionName, 'guard_name' => 'web']);
+        }
 
         // ========== BUAT ROLES ==========
-        $superadmin = Role::create(['name' => 'superadmin', 'guard_name' => 'web']);
-        $admin = Role::create(['name' => 'admin', 'guard_name' => 'web']);
-        $mahasiswa = Role::create(['name' => 'mahasiswa', 'guard_name' => 'web']);
+        $superadmin = Role::firstOrCreate(['name' => 'superadmin', 'guard_name' => 'web']);
+        $admin = Role::firstOrCreate(['name' => 'admin', 'guard_name' => 'web']);
+        $mahasiswa = Role::firstOrCreate(['name' => 'mahasiswa', 'guard_name' => 'web']);
 
         // ========== ASSIGN PERMISSIONS KE ROLES ==========
-        $mahasiswa->givePermissionTo([
-            $submitPengajuan,
-            $editPengajuan,
-            $deletePengajuan,
+        // Gunakan syncPermissions agar relasi selalu sesuai dengan kode (menghapus yang lama jika perlu)
+        $mahasiswa->syncPermissions([
+            'submit-pengajuan',
+            'edit-pengajuan',
+            'delete-pengajuan',
         ]);
 
-        $admin->givePermissionTo([
-            $approvePengajuan,
-            $rejectPengajuan,
-            $viewAntrean,
+        $admin->syncPermissions([
+            'approve-pengajuan',
+            'reject-pengajuan',
+            'view-antrean',
         ]);
 
         // Superadmin mendapat SEMUA permission
-        $superadmin->givePermissionTo(Permission::all());
+        $superadmin->syncPermissions(Permission::all());
     }
 }

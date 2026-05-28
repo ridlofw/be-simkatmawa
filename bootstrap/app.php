@@ -12,31 +12,30 @@ use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__.'/../routes/web.php',
-        api: __DIR__.'/../routes/api.php',
-        commands: __DIR__.'/../routes/console.php',
+        web: __DIR__ . '/../routes/web.php',
+        api: __DIR__ . '/../routes/api.php',
+        commands: __DIR__ . '/../routes/console.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // 1. TAMBAHKAN INI: Mengecualikan route API dari pengecekan CSRF
+        $middleware->validateCsrfTokens(except: [
+            'api/*',
+        ]);
+
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
 
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
-            // Spatie Permission — middleware bawaan (menggantikan custom RoleMiddleware)
             'role' => \Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => \Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-
-        /**
-         * Global Exception Handler — Membungkus SEMUA error ke format kontrak API.
-         * Sesuai Kontrak_API_Frontend.md §1:
-         * { "success": false, "message": "...", "data": null, "errors": ... }
-         */
+        // ... (Exception handler Anda tetap sama, tidak perlu diubah)
 
         // 401 — Belum login / token expired
         $exceptions->render(function (AuthenticationException $e, $request) {
@@ -50,7 +49,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
-        // 403 — Tidak punya izin (role tidak sesuai)
+        // 403 — Tidak punya izin
         $exceptions->render(function (AccessDeniedHttpException $e, $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 return response()->json([
@@ -62,7 +61,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
-        // 403 — Spatie UnauthorizedException (role/permission mismatch)
+        // 403 — Spatie UnauthorizedException
         $exceptions->render(function (\Spatie\Permission\Exceptions\UnauthorizedException $e, $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 return response()->json([
@@ -74,7 +73,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
-        // 404 — Route atau Model tidak ditemukan
+        // 404 — Not Found
         $exceptions->render(function (NotFoundHttpException $e, $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 return response()->json([
@@ -86,7 +85,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
-        // 404 — Model::findOrFail() gagal
+        // 404 — ModelNotFound
         $exceptions->render(function (ModelNotFoundException $e, $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 $modelClass = class_basename($e->getModel());
@@ -99,7 +98,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
-        // 405 — Method HTTP tidak diizinkan
+        // 405 — Method Not Allowed
         $exceptions->render(function (MethodNotAllowedHttpException $e, $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 return response()->json([
@@ -111,7 +110,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
-        // 422 — Validasi gagal (FormRequest)
+        // 422 — Validation Error
         $exceptions->render(function (ValidationException $e, $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 return response()->json([
@@ -123,7 +122,7 @@ return Application::configure(basePath: dirname(__DIR__))
             }
         });
 
-        // 500 — Error tak terduga (catch-all untuk API)
+        // 500 — Server Error
         $exceptions->render(function (\Throwable $e, $request) {
             if ($request->is('api/*') || $request->expectsJson()) {
                 $message = config('app.debug')
@@ -142,5 +141,4 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], 500);
             }
         });
-
     })->create();
