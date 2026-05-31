@@ -12,15 +12,22 @@ use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__.'/../routes/web.php',
-        api: __DIR__.'/../routes/api.php',
-        commands: __DIR__.'/../routes/console.php',
+        web: __DIR__ . '/../routes/web.php',
+        api: __DIR__ . '/../routes/api.php',
+        commands: __DIR__ . '/../routes/console.php',
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        $middleware->api(prepend: [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+
+        // 1. MATIKAN PENGECEKAN CSRF UNTUK SEMUA ROUTE API
+        $middleware->validateCsrfTokens(except: [
+            'api/*',
         ]);
+
+        // 2. PASTIKAN STATEFUL MIDDLEWARE SANCTUM DIHAPUS / DI-COMMENT
+        // $middleware->api(prepend: [
+        //     \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        // ]);
 
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
@@ -142,5 +149,4 @@ return Application::configure(basePath: dirname(__DIR__))
                 ], 500);
             }
         });
-
     })->create();
