@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'api/*',
         ]);
+        
 
         // 2. PASTIKAN STATEFUL MIDDLEWARE SANCTUM DIHAPUS / DI-COMMENT
         // $middleware->api(prepend: [

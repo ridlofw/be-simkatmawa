@@ -19,7 +19,9 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [env('FRONTEND_URL', 'http://localhost:3000')],
+    // Mendukung multiple origins (pisahkan dengan koma di .env)
+    // Contoh: FRONTEND_URL=http://localhost:3000,https://fe-teman.trycloudflare.com
+    'allowed_origins' => array_map('trim', explode(',', env('FRONTEND_URL', 'http://localhost:3000'))),
 
     'allowed_origins_patterns' => [],
 
