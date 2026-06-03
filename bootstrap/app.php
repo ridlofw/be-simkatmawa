@@ -19,18 +19,16 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
 
-        // 1. PENGECUALIAN CSRF: Pastikan semua endpoint API tidak meminta CSRF token
+        // 1. MATIKAN PENGECEKAN CSRF UNTUK SEMUA ROUTE API
         $middleware->validateCsrfTokens(except: [
             'api/*',
         ]);
+        
 
-        // 2. HAPUS STATEFUL MIDDLEWARE: Agar Laravel memperlakukan request murni sebagai Stateless API (Bearer Token),
-        // bukan sebagai SPA yang butuh cookie/session CSRF.
-        /* 
-        $middleware->api(prepend: [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-        ]);
-        */
+        // 2. PASTIKAN STATEFUL MIDDLEWARE SANCTUM DIHAPUS / DI-COMMENT
+        // $middleware->api(prepend: [
+        //     \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+        // ]);
 
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Admin\VerifikasiController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\V1\Admin\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -23,3 +24,4 @@ Route::middleware('role:admin|superadmin')->group(function () {
     Route::post('/verifikasi/{tipeKegiatan}/{id}', [VerifikasiController::class, 'verifikasi']);
 
 });
+Route::get('/dashboard', [DashboardController::class, 'index']);

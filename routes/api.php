@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\V1\Auth\AuthController;
 use App\Http\Controllers\Api\V1\ReferensiController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\V1\Admin\UserController;
+use App\Http\Controllers\Api\V1\Admin\DashboardController;
 
 /*
 |--------------------------------------------------------------------------
@@ -62,6 +64,7 @@ Route::prefix('v1')->group(function () {
         // D. ENDPOINT ADMIN
         // ==============================
         Route::prefix('admin')->group(function () {
+            Route::get('/users', [UserController::class, 'index']);
             require __DIR__ . '/web/admin.php';
         });
 
@@ -73,3 +76,4 @@ Route::prefix('v1')->group(function () {
         });
     });
 });
+Route::get('/dashboard', [DashboardController::class, 'index']);
