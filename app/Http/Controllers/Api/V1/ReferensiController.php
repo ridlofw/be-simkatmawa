@@ -43,50 +43,56 @@ class ReferensiController extends Controller
     }
 
     /**
-     * [GET] Lookup Mahasiswa — Cari berdasarkan NIM.
-     * Digunakan Frontend untuk validasi NIM secara real-time saat input peserta.
-     *
-     * Query: ?nim=A11.2024.16059
+     * [GET] Lookup Mahasiswa — Cari berdasarkan Keyword Nama.
+     * Digunakan Frontend untuk fitur dropdown search (?q=...).
      */
     public function searchMahasiswa(Request $request): JsonResponse
     {
-        $request->validate([
-            'nim' => 'required|string|min:3',
-        ]);
+        $request->validate(['q' => 'required|string']);
 
-        $mahasiswa = Mahasiswa::where('nim', $request->nim)->first();
+        $search = $request->input('q');
+        // Menambahkan wildcard asteriks untuk pencarian parsial di boolean mode
+        $searchQuery = '*' . str_replace(' ', '* *', $search) . '*';
 
-        if (!$mahasiswa) {
-            return $this->errorResponse('Mahasiswa dengan NIM tersebut tidak ditemukan.', 404);
-        }
+        $mahasiswa = Mahasiswa::whereFullText('nama', $searchQuery, ['mode' => 'boolean'])
+            ->limit(20)
+            ->get(['nim', 'nama'])
+            ->map(function ($item) {
+                return [
+                    'id' => $item->nim,
+                    'nim' => $item->nim,
+                    'nama' => $item->nama,
+                    'label' => $item->nama . ' - ' . $item->nim
+                ];
+            });
 
-        return $this->successResponse([
-            'nim' => $mahasiswa->nim,
-            'nama' => $mahasiswa->nama,
-        ], 'Data mahasiswa ditemukan.');
+        return $this->successResponse($mahasiswa, 'Data mahasiswa berhasil diambil.');
     }
 
     /**
-     * [GET] Lookup Dosen — Cari berdasarkan NUPTK/NIDN.
-     * Digunakan Frontend untuk validasi NUPTK secara real-time saat input dosen.
-     *
-     * Query: ?nuptk=0622057501
+     * [GET] Lookup Dosen — Cari berdasarkan Keyword Nama.
+     * Digunakan Frontend untuk fitur dropdown search (?q=...).
      */
     public function searchDosen(Request $request): JsonResponse
     {
-        $request->validate([
-            'nuptk' => 'required|string|min:3',
-        ]);
+        $request->validate(['q' => 'required|string']);
 
-        $dosen = Dosen::where('nuptk', $request->nuptk)->first();
+        $search = $request->input('q');
+        // Menambahkan wildcard asteriks untuk pencarian parsial di boolean mode
+        $searchQuery = '*' . str_replace(' ', '* *', $search) . '*';
 
-        if (!$dosen) {
-            return $this->errorResponse('Dosen dengan NUPTK/NIDN tersebut tidak ditemukan.', 404);
-        }
+        $dosen = Dosen::whereFullText('nama', $searchQuery, ['mode' => 'boolean'])
+            ->limit(20)
+            ->get(['nuptk', 'nama'])
+            ->map(function ($item) {
+                return [
+                    'id' => $item->nuptk,
+                    'nama' => $item->nama,
+                    'nuptk' => $item->nuptk,
+                    'label' => $item->nama . ' - ' . $item->nuptk
+                ];
+            });
 
-        return $this->successResponse([
-            'nuptk' => $dosen->nuptk,
-            'nama' => $dosen->nama,
-        ], 'Data dosen ditemukan.');
+        return $this->successResponse($dosen, 'Data dosen berhasil diambil.');
     }
 }
