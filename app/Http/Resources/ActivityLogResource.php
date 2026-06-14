@@ -43,8 +43,10 @@ class ActivityLogResource extends JsonResource
             'informasi_umum' => [
                 'waktu' => $this->created_at?->translatedFormat('d M Y, H:i') . ' WIB',
                 'aksi' => $aksiLabel,
-                'pelaku' => $this->whenLoaded('causer', fn() => $this->causer->name, 'Mahasiswa'),
-                'role' => 'mahasiswa',
+                'pelaku' => $this->whenLoaded('causer', fn() => $this->causer->name, 'Sistem'),
+                'role' => $this->whenLoaded('causer', function() {
+                    return class_basename($this->causer) === 'Mahasiswa' ? 'mahasiswa' : 'admin';
+                }, 'sistem'),
                 'modul' => $moduleName,
                 'target' => $target,
             ],

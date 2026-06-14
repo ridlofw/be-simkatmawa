@@ -34,6 +34,8 @@ class AuthController extends Controller
         }
 
         $token = $user->createToken('auth-token')->plainTextToken;
+        
+        $user->update(['last_login_at' => now()]);
 
         // Ambil role dari Spatie Permission
         $role = $user->getRoleNames()->first(); // 'mahasiswa', 'admin', 'superadmin'

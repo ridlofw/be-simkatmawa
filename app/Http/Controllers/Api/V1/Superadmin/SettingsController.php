@@ -21,12 +21,19 @@ class SettingsController extends Controller
      */
     public function showKemdikbud(): JsonResponse
     {
-        $email = Setting::getValue('kemdikbud_email');
+        $emailSetting = Setting::with('updater')->where('key', 'kemdikbud_email')->first();
         $passwordSet = !empty(Setting::getValue('kemdikbud_password'));
 
+        $updaterName = '-';
+        if ($emailSetting && $emailSetting->updater) {
+            $updaterName = $emailSetting->updater->name . ' (' . ($emailSetting->updater->getRoleNames()->first() ?? '-') . ')';
+        }
+
         return $this->successResponse([
-            'email' => $email,
+            'email' => $emailSetting ? $emailSetting->value : null,
             'is_password_set' => $passwordSet,
+            'terakhir_diperbarui' => $emailSetting ? $emailSetting->updated_at : null,
+            'diperbarui_oleh' => $updaterName,
         ], 'Data kredensial aktif.');
     }
 

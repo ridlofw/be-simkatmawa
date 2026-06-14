@@ -23,12 +23,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'api/*',
         ]);
-        
 
-        // 2. PASTIKAN STATEFUL MIDDLEWARE SANCTUM DIHAPUS / DI-COMMENT
-        // $middleware->api(prepend: [
-        //     \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-        // ]);
+        // 2. SANCTUM STATEFUL API — Menangani CORS preflight (OPTIONS) dengan benar
+        //    Tanpa ini, browser mengirim OPTIONS request yang tidak dijawab → timeout.
+        $middleware->statefulApi();
 
         $middleware->alias([
             'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
@@ -44,110 +42,98 @@ return Application::configure(basePath: dirname(__DIR__))
          * Global Exception Handler — Membungkus SEMUA error ke format kontrak API.
          * Sesuai Kontrak_API_Frontend.md §1:
          * { "success": false, "message": "...", "data": null, "errors": ... }
+         *
+         * BEST PRACTICE: Karena proyek ini 100% API-only, semua response
+         * WAJIB berformat JSON. Tidak ada kondisi if-guard yang menyebabkan
+         * silent-fail atau redirect ke route('login').
          */
 
         // 401 — Belum login / token expired
         $exceptions->render(function (AuthenticationException $e, $request) {
-            if ($request->is('api/*') || $request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Akses ditolak. Silakan login terlebih dahulu.',
-                    'data' => null,
-                    'errors' => null,
-                ], 401);
-            }
+            return response()->json([
+                'success' => false,
+                'message' => 'Akses ditolak. Silakan login terlebih dahulu.',
+                'data' => null,
+                'errors' => null,
+            ], 401);
         });
 
         // 403 — Tidak punya izin (role tidak sesuai)
         $exceptions->render(function (AccessDeniedHttpException $e, $request) {
-            if ($request->is('api/*') || $request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Anda tidak memiliki izin untuk mengakses resource ini.',
-                    'data' => null,
-                    'errors' => null,
-                ], 403);
-            }
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki izin untuk mengakses resource ini.',
+                'data' => null,
+                'errors' => null,
+            ], 403);
         });
 
         // 403 — Spatie UnauthorizedException (role/permission mismatch)
         $exceptions->render(function (\Spatie\Permission\Exceptions\UnauthorizedException $e, $request) {
-            if ($request->is('api/*') || $request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Anda tidak memiliki izin untuk mengakses resource ini.',
-                    'data' => null,
-                    'errors' => null,
-                ], 403);
-            }
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki izin untuk mengakses resource ini.',
+                'data' => null,
+                'errors' => null,
+            ], 403);
         });
 
         // 404 — Route atau Model tidak ditemukan
         $exceptions->render(function (NotFoundHttpException $e, $request) {
-            if ($request->is('api/*') || $request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Resource yang diminta tidak ditemukan.',
-                    'data' => null,
-                    'errors' => null,
-                ], 404);
-            }
+            return response()->json([
+                'success' => false,
+                'message' => 'Resource yang diminta tidak ditemukan.',
+                'data' => null,
+                'errors' => null,
+            ], 404);
         });
 
         // 404 — Model::findOrFail() gagal
         $exceptions->render(function (ModelNotFoundException $e, $request) {
-            if ($request->is('api/*') || $request->expectsJson()) {
-                $modelClass = class_basename($e->getModel());
-                return response()->json([
-                    'success' => false,
-                    'message' => "Data {$modelClass} tidak ditemukan.",
-                    'data' => null,
-                    'errors' => null,
-                ], 404);
-            }
+            $modelClass = class_basename($e->getModel());
+            return response()->json([
+                'success' => false,
+                'message' => "Data {$modelClass} tidak ditemukan.",
+                'data' => null,
+                'errors' => null,
+            ], 404);
         });
 
         // 405 — Method HTTP tidak diizinkan
         $exceptions->render(function (MethodNotAllowedHttpException $e, $request) {
-            if ($request->is('api/*') || $request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Method HTTP tidak diizinkan untuk endpoint ini.',
-                    'data' => null,
-                    'errors' => null,
-                ], 405);
-            }
+            return response()->json([
+                'success' => false,
+                'message' => 'Method HTTP tidak diizinkan untuk endpoint ini.',
+                'data' => null,
+                'errors' => null,
+            ], 405);
         });
 
         // 422 — Validasi gagal (FormRequest)
         $exceptions->render(function (ValidationException $e, $request) {
-            if ($request->is('api/*') || $request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validasi gagal, periksa kembali input Anda.',
-                    'data' => null,
-                    'errors' => $e->errors(),
-                ], 422);
-            }
+            return response()->json([
+                'success' => false,
+                'message' => 'Validasi gagal, periksa kembali input Anda.',
+                'data' => null,
+                'errors' => $e->errors(),
+            ], 422);
         });
 
         // 500 — Error tak terduga (catch-all untuk API)
         $exceptions->render(function (\Throwable $e, $request) {
-            if ($request->is('api/*') || $request->expectsJson()) {
-                $message = config('app.debug')
-                    ? $e->getMessage()
-                    : 'Terjadi kesalahan pada server. Silakan coba lagi nanti.';
+            $message = config('app.debug')
+                ? $e->getMessage()
+                : 'Terjadi kesalahan pada server. Silakan coba lagi nanti.';
 
-                return response()->json([
-                    'success' => false,
-                    'message' => $message,
-                    'data' => null,
-                    'errors' => config('app.debug') ? [
-                        'exception' => get_class($e),
-                        'file' => $e->getFile(),
-                        'line' => $e->getLine(),
-                    ] : null,
-                ], 500);
-            }
+            return response()->json([
+                'success' => false,
+                'message' => $message,
+                'data' => null,
+                'errors' => config('app.debug') ? [
+                    'exception' => get_class($e),
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                ] : null,
+            ], 500);
         });
     })->create();

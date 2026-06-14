@@ -10,10 +10,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
+use App\Traits\HasDeletedBy;
 
 class Sertifikasi extends Model
 {
-    use SoftDeletes, LogsActivity;
+    use SoftDeletes, LogsActivity, HasDeletedBy;
 
     protected $table = 'sertifikasi';
 
@@ -33,6 +34,7 @@ class Sertifikasi extends Model
         'created_by',
         'approved_by',
         'approved_at',
+        'deleted_by',
     ];
 
     protected function casts(): array

@@ -3,13 +3,23 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Setting extends Model
 {
     protected $fillable = [
         'key',
         'value',
+        'updated_by',
     ];
+
+    /**
+     * Relasi ke User yang terakhir kali memperbarui setting ini.
+     */
+    public function updater(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'updated_by');
+    }
 
     /**
      * Ambil value setting berdasarkan key.
@@ -27,7 +37,10 @@ class Setting extends Model
     {
         static::updateOrCreate(
             ['key' => $key],
-            ['value' => $value]
+            [
+                'value' => $value,
+                'updated_by' => auth()->id()
+            ]
         );
     }
 }

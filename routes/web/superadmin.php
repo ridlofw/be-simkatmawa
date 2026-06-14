@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Superadmin\SettingsController;
 use App\Http\Controllers\Api\V1\Superadmin\TrashController;
+use App\Http\Controllers\Api\V1\Superadmin\UserController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -24,8 +25,16 @@ Route::middleware('role:superadmin')->group(function () {
     // --- Recycle Bin: Soft Deleted Data ---
     Route::prefix('trash')->controller(TrashController::class)->group(function () {
         Route::get('/{tipeKegiatan}', 'index');
+        Route::get('/{tipeKegiatan}/{id}', 'show');
         Route::put('/{tipeKegiatan}/{id}/restore', 'restore');
-        Route::delete('/{tipeKegiatan}/{id}', 'forceDelete');
+    });
+
+    // --- User Management ---
+    Route::prefix('users')->controller(UserController::class)->group(function () {
+        Route::get('/', 'index');
+        Route::post('/', 'store');
+        Route::put('/{id}', 'update');
+        Route::delete('/{id}', 'destroy');
     });
 
 });
