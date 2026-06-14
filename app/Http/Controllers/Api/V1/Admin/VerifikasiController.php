@@ -133,10 +133,15 @@ class VerifikasiController extends Controller
 
         $status = $request->input('status');
 
+        $adminId = $request->user()->id;
+        $now = now();
+
         if ($status === 'APPROVE') {
             $pengajuan->update([
                 'status_internal' => 'APPROVED_UNSYNCED',
                 'alasan_penolakan' => null, // Reset alasan penolakan jika sebelumnya ditolak lalu disetujui ulang
+                'approved_by' => $adminId,
+                'approved_at' => $now,
             ]);
 
             // TODO: Dispatch job untuk sinkronisasi ke Kemdikbud
@@ -146,6 +151,8 @@ class VerifikasiController extends Controller
             $pengajuan->update([
                 'status_internal' => 'REJECTED',
                 'alasan_penolakan' => $request->input('alasan_penolakan'),
+                'approved_by' => $adminId,
+                'approved_at' => $now,
             ]);
         }
 
