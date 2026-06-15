@@ -50,18 +50,7 @@ class ActivityLogController extends Controller
         }
         
         if ($modul) {
-            $subjectMap = [
-                'prestasi' => 'App\Models\PrestasiMandiri',
-                'sertifikasi' => 'App\Models\Sertifikasi',
-                'rekognisi' => 'App\Models\Rekognisi',
-            ];
-            
-            if (isset($subjectMap[strtolower($modul)])) {
-                $query->where('subject_type', $subjectMap[strtolower($modul)]);
-            } else {
-                // Bisa untuk mem-filter modul lain jika dikirimkan Full Class Path
-                $query->where('subject_type', $modul);
-            }
+            $query->where('log_name', $modul);
         }
 
         $activities = $query->paginate($perPage);

@@ -19,12 +19,20 @@ class ActivityLogResource extends JsonResource
         ];
         $moduleName = $moduleMap[$this->subject_type] ?? class_basename($this->subject_type);
 
-        // Parsing Target (Ambil dari properties jika memungkinkan, atau dari subject)
-        $target = '-';
-        if ($this->properties && isset($this->properties['attributes'])) {
-            $attrs = $this->properties['attributes'];
-            // Prioritas penamaan target berdasarkan kolom yang biasanya ada
-            $target = $attrs['lomba'] ?? $attrs['nama_kegiatan'] ?? $attrs['judul'] ?? $attrs['nama_sertifikasi'] ?? $attrs['nama'] ?? $target;
+        // Parsing Target Anti-Kosong
+        $target = '—';
+        
+        // 1. Coba ambil dari relasi (Untuk event created/updated)
+        if ($this->subject) {
+            $target = $this->subject->lomba ?? $this->subject->nama_sertifikasi ?? $this->subject->aktivitas ?? $this->subject->nama_kegiatan ?? $this->subject->judul ?? $this->subject->name ?? $this->subject->nama ?? $this->subject->key ?? $target;
+        }
+
+        // 2. Fallback baca JSON properties (Untuk event deleted atau jika subject null)
+        if ($target === '—' && $this->properties) {
+            $props = $this->properties->toArray();
+            $attrs = $props['attributes'] ?? $props['old'] ?? [];
+            
+            $target = $attrs['lomba'] ?? $attrs['nama_sertifikasi'] ?? $attrs['aktivitas'] ?? $attrs['nama_kegiatan'] ?? $attrs['judul'] ?? $attrs['name'] ?? $attrs['nama'] ?? $attrs['key'] ?? $target;
         }
 
         // Format label aksi bahasa Indonesia
@@ -43,10 +51,8 @@ class ActivityLogResource extends JsonResource
             'informasi_umum' => [
                 'waktu' => $this->created_at?->translatedFormat('d M Y, H:i') . ' WIB',
                 'aksi' => $aksiLabel,
-                'pelaku' => $this->whenLoaded('causer', fn() => $this->causer->name, 'Sistem'),
-                'role' => $this->whenLoaded('causer', function() {
-                    return class_basename($this->causer) === 'Mahasiswa' ? 'mahasiswa' : 'admin';
-                }, 'sistem'),
+                'pelaku' => $this->causer->name ?? 'Sistem',
+                'role' => $this->causer ? (class_basename($this->causer) === 'Mahasiswa' ? 'mahasiswa' : 'admin') : 'sistem',
                 'modul' => $moduleName,
                 'target' => $target,
             ],
