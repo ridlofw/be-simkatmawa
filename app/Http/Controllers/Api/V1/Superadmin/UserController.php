@@ -3,16 +3,19 @@
 namespace App\Http\Controllers\Api\V1\Superadmin;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
+use App\Services\Superadmin\UserService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
 
 class UserController extends Controller
 {
     use ApiResponse;
+
+    public function __construct(
+        private readonly UserService $userService
+    ) {}
 
     /**
      * [GET] List semua pengguna dengan fitur pencarian dan filter
@@ -24,45 +27,13 @@ class UserController extends Controller
         $role = $request->query('role');
         $status = $request->query('status'); // 'active', 'inactive'
 
-        // withTrashed agar user yang di-soft-delete (inactive) tetap muncul
-        $query = User::with('roles')->withTrashed();
-
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
-            });
-        }
-
-        if ($role && $role !== 'all') {
-            $query->role($role);
-        }
-
-        if ($status === 'active') {
-            $query->whereNull('deleted_at');
-        } elseif ($status === 'inactive') {
-            $query->whereNotNull('deleted_at');
-        }
-
-        $paginated = $query->latest()->paginate($limit);
+        $paginated = $this->userService->listUsers($limit, $search, $role, $status);
 
         // Format data untuk mempermudah frontend membaca status dan role
-        $data = collect($paginated->items())->map(function ($user) {
-            return [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $user->getRoleNames()->first() ?? '-',
-                'status' => $user->trashed() ? 'inactive' : 'active',
-                'last_login_at' => $user->last_login_at ? $user->last_login_at->toISOString() : null,
-                'created_at' => $user->created_at,
-            ];
-        });
+        $data = $this->userService->formatUserData($paginated);
 
         // Hitung statistik untuk Dashboard/Frontend
-        $totalAdmin = User::role('admin')->count();
-        $totalSuperadmin = User::role('superadmin')->count();
-        $totalMahasiswa = User::role('mahasiswa')->count();
+        $stats = $this->userService->getUserStats();
 
         return response()->json([
             'success' => true,
@@ -74,11 +45,7 @@ class UserController extends Controller
                 'per_page'     => $paginated->perPage(),
                 'total'        => $paginated->total(),
             ],
-            'stats'   => [
-                'totalAdmin'     => $totalAdmin,
-                'totalSuperadmin' => $totalSuperadmin,
-                'totalMahasiswa' => $totalMahasiswa,
-            ]
+            'stats'   => $stats,
         ]);
     }
 
@@ -94,13 +61,7 @@ class UserController extends Controller
             'role' => 'required|in:admin,superadmin' // Mahasiswa harusnya mendaftar otomatis via SSO
         ]);
 
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-        ]);
-
-        $user->assignRole($validated['role']);
+        $user = $this->userService->createUser($validated);
 
         return $this->successResponse(
             ['id' => $user->id, 'name' => $user->name, 'email' => $user->email, 'role' => $validated['role']],
@@ -114,36 +75,18 @@ class UserController extends Controller
      */
     public function update(Request $request, string $id): JsonResponse
     {
-        // Pakai withTrashed kalau mau mengizinkan update pada akun inactive
-        $user = User::withTrashed()->find($id);
-
-        if (!$user) {
-            return $this->errorResponse('Pengguna tidak ditemukan.', 404);
-        }
-
+        // Validasi dasar dulu sebelum cari user (agar consistent)
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|string|email|max:255|unique:users,email,' . $user->id,
+            'email' => 'sometimes|required|string|email|max:255|unique:users,email,' . $id,
             'password' => ['nullable', Password::min(8)],
             'role' => 'sometimes|required|in:admin,superadmin'
         ]);
 
-        if (isset($validated['name'])) {
-            $user->name = $validated['name'];
-        }
+        $user = $this->userService->updateUser($id, $validated);
 
-        if (isset($validated['email'])) {
-            $user->email = $validated['email'];
-        }
-
-        if (!empty($validated['password'])) {
-            $user->password = Hash::make($validated['password']);
-        }
-
-        $user->save();
-
-        if (isset($validated['role'])) {
-            $user->syncRoles([$validated['role']]);
+        if (!$user) {
+            return $this->errorResponse('Pengguna tidak ditemukan.', 404);
         }
 
         return $this->successResponse(
@@ -155,21 +98,14 @@ class UserController extends Controller
     /**
      * [DELETE] Menonaktifkan (soft delete) pengguna
      */
-    public function destroy(string $id): JsonResponse
+    public function destroy(string $id, Request $request): JsonResponse
     {
-        $user = User::find($id);
+        $result = $this->userService->deactivateUser($id, $request->user());
 
-        if (!$user) {
-            return $this->errorResponse('Pengguna tidak ditemukan atau sudah tidak aktif.', 404);
+        if (!$result['success']) {
+            return $this->errorResponse($result['message'], $result['code']);
         }
 
-        // Hindari menghapus diri sendiri
-        if ($user->id === auth()->id()) {
-            return $this->errorResponse('Anda tidak dapat menonaktifkan akun Anda sendiri.', 403);
-        }
-
-        $user->delete();
-
-        return $this->successResponse(null, 'Pengguna berhasil dinonaktifkan.');
+        return $this->successResponse(null, $result['message']);
     }
 }

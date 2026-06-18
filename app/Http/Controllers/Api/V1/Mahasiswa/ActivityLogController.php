@@ -4,17 +4,23 @@ namespace App\Http\Controllers\Api\V1\Mahasiswa;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ActivityLogCollection;
+use App\Http\Resources\ActivityLogResource;
+use App\Services\ActivityLog\ActivityLogService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Spatie\Activitylog\Models\Activity;
 
 /**
  * Controller Activity Log — Endpoint Mahasiswa.
+ * Thin Controller: delegasi logika bisnis ke ActivityLogService.
  */
 class ActivityLogController extends Controller
 {
     use ApiResponse;
+
+    public function __construct(
+        private readonly ActivityLogService $activityLogService
+    ) {}
 
     /**
      * [GET] Daftar riwayat aktivitas pengguna yang sedang login.
@@ -27,22 +33,11 @@ class ActivityLogController extends Controller
             return $this->errorResponse('Unauthenticated.', 401);
         }
 
-        $perPage = $request->input('per_page', 15);
-        $search = $request->input('search');
-
-        $query = Activity::with('causer')
-            ->where('causer_id', $user->id)
-            ->where('causer_type', get_class($user))
-            ->latest();
-
-        if ($search) {
-            $query->where(function ($q) use ($search) {
-                $q->where('description', 'like', "%{$search}%")
-                  ->orWhere('event', 'like', "%{$search}%");
-            });
-        }
-
-        $activities = $query->paginate($perPage);
+        $activities = $this->activityLogService->getUserLogs(
+            $user,
+            $request->input('per_page', 15),
+            $request->input('search')
+        );
 
         return new ActivityLogCollection($activities);
     }
@@ -53,13 +48,15 @@ class ActivityLogController extends Controller
     public function show(int $id, Request $request): JsonResponse
     {
         $user = $request->user();
-        
-        $activity = Activity::with(['causer', 'subject'])
-            ->where('causer_id', $user->id)
-            ->findOrFail($id);
+
+        $activity = $this->activityLogService->getUserLogDetail($user, $id);
+
+        if (!$activity) {
+            return $this->errorResponse('Activity log tidak ditemukan.', 404);
+        }
 
         return $this->successResponse(
-            new \App\Http\Resources\ActivityLogResource($activity),
+            new ActivityLogResource($activity),
             'Detail activity log berhasil diambil.'
         );
     }

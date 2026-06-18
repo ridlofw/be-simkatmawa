@@ -3,19 +3,22 @@
 namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\Auth\AuthService;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
-use App\Models\User;
 
 /**
  * Controller Autentikasi (Kontrak_API_Frontend.md §A).
- * Thin Controller — logika minimal, validasi via FormRequest.
+ * Thin Controller — logika minimal, delegasi ke AuthService.
  */
 class AuthController extends Controller
 {
     use ApiResponse;
+
+    public function __construct(
+        private readonly AuthService $authService
+    ) {}
 
     /**
      * [POST] Login — Mendapatkan token Sanctum.
@@ -27,35 +30,16 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $result = $this->authService->attemptLogin(
+            $request->email,
+            $request->password
+        );
 
-        if (!$user || !Hash::check($request->password, $user->password)) {
+        if (!$result) {
             return $this->errorResponse('Email atau password salah.', 401);
         }
 
-        $token = $user->createToken('auth-token')->plainTextToken;
-        
-        $user->update(['last_login_at' => now()]);
-
-        // Ambil role dari Spatie Permission
-        $role = $user->getRoleNames()->first(); // 'mahasiswa', 'admin', 'superadmin'
-
-        // Ambil identitas berdasarkan role
-        $identitas = null;
-        if ($role === 'mahasiswa' && $user->mahasiswa) {
-            $identitas = $user->mahasiswa->nim;
-        }
-
-        return $this->successResponse([
-            'token' => $token,
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'role' => $role,
-                'identitas' => $identitas,
-            ],
-        ], 'Login berhasil.');
+        return $this->successResponse($result, 'Login berhasil.');
     }
 
     /**
@@ -63,21 +47,9 @@ class AuthController extends Controller
      */
     public function me(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $role = $user->getRoleNames()->first();
+        $profile = $this->authService->getUserProfile($request->user());
 
-        $identitas = null;
-        if ($role === 'mahasiswa' && $user->mahasiswa) {
-            $identitas = $user->mahasiswa->nim;
-        }
-
-        return $this->successResponse([
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-            'role' => $role,
-            'identitas' => $identitas,
-        ], 'Profil berhasil diambil.');
+        return $this->successResponse($profile, 'Profil berhasil diambil.');
     }
 
     /**
@@ -85,7 +57,7 @@ class AuthController extends Controller
      */
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()->delete();
+        $this->authService->logout($request->user());
 
         return $this->successResponse(null, 'Logout berhasil.');
     }
