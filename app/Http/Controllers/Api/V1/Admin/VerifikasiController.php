@@ -32,7 +32,7 @@ class VerifikasiController extends Controller
 
         // Ambil parameter status dan limit dari URL, dengan nilai default
         $status = $request->query('status', 'PENDING');
-        $limit = $request->query('limit', 10);
+        $limit = $request->query('limit', config('pagination.per_page'));
 
         $paginated = $this->verifikasiService->getQueue($tipeKegiatan, $status, $limit);
 

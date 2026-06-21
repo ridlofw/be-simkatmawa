@@ -22,7 +22,7 @@ class HistoryController extends Controller
             return $this->errorResponse("Tipe kegiatan '$tipeKegiatan' tidak valid.", 400);
         }
 
-        $limit = $request->query('limit', 10);
+        $limit = $request->query('limit', config('pagination.per_page'));
         $status = $request->query('status');
         $search = $request->query('search');
 

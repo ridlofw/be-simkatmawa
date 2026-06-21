@@ -35,7 +35,7 @@ class ActivityLogController extends Controller
 
         $activities = $this->activityLogService->getUserLogs(
             $user,
-            $request->input('per_page', 15),
+            $request->input('per_page', config('pagination.per_page')),
             $request->input('search')
         );
 

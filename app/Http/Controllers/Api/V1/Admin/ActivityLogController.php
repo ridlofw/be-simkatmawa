@@ -21,7 +21,7 @@ class ActivityLogController extends Controller
     public function index(Request $request): JsonResponse|ActivityLogCollection
     {
         $activities = $this->activityLogService->getAllLogs(
-            perPage: $request->input('per_page', 15),
+            perPage: $request->input('per_page', config('pagination.per_page')),
             search: $request->input('search'),
             causerId: $request->input('causer_id'),
             causerType: $request->input('causer_type'),

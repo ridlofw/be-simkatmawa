@@ -22,7 +22,7 @@ class UserController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $limit = $request->query('limit', 10);
+        $limit = $request->query('limit', config('pagination.per_page'));
         $search = $request->query('search');
         $role = $request->query('role');
         $status = $request->query('status'); // 'active', 'inactive'
