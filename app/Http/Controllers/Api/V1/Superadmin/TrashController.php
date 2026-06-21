@@ -25,7 +25,7 @@ class TrashController extends Controller
             return $this->errorResponse("Tipe kegiatan '$tipeKegiatan' tidak valid.", 400);
         }
 
-        $limit = $request->query('limit', 10);
+        $limit = $request->query('limit', config('pagination.per_page'));
         $search = $request->query('search');
         $status = $request->query('status'); // untuk filter status_internal jika ada
 

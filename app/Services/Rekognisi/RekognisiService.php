@@ -31,7 +31,7 @@ class RekognisiService
             $query->where('nama', 'like', '%' . $filters['search'] . '%');
         }
 
-        return $query->orderByDesc('created_at')->paginate(15);
+        return $query->orderByDesc('created_at')->paginate(config('pagination.per_page'));
     }
 
     public function findById(int $id): Rekognisi
