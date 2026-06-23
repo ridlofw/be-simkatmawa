@@ -3,6 +3,7 @@
 namespace App\Services\Admin;
 
 use App\Models\User;
+use App\Services\Sync\SyncQueueService;
 use App\Traits\ResolvesModelType;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Model;
@@ -14,6 +15,10 @@ use Illuminate\Database\Eloquent\Model;
 class VerifikasiService
 {
     use ResolvesModelType;
+
+    public function __construct(
+        private readonly SyncQueueService $syncQueueService
+    ) {}
 
     /**
      * Ambil daftar antrean pengajuan (filterable by status).
@@ -103,8 +108,8 @@ class VerifikasiService
                 'approved_at' => $now,
             ]);
 
-            // TODO: Dispatch job untuk sinkronisasi ke Kemdikbud
-            // SyncToKemdikbudJob::dispatch($pengajuan);
+            // Masukkan ke antrean sinkronisasi (diproses oleh ProcessSyncQueue command)
+            $this->syncQueueService->enqueue($pengajuan);
 
         } elseif ($status === 'REJECT') {
             $pengajuan->update([

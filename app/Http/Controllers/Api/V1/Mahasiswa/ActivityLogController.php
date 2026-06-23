@@ -7,6 +7,7 @@ use App\Http\Resources\ActivityLogCollection;
 use App\Http\Resources\ActivityLogResource;
 use App\Services\ActivityLog\ActivityLogService;
 use App\Traits\ApiResponse;
+use App\Traits\HasPagination;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -16,7 +17,7 @@ use Illuminate\Http\Request;
  */
 class ActivityLogController extends Controller
 {
-    use ApiResponse;
+    use ApiResponse, HasPagination;
 
     public function __construct(
         private readonly ActivityLogService $activityLogService
@@ -35,7 +36,7 @@ class ActivityLogController extends Controller
 
         $activities = $this->activityLogService->getUserLogs(
             $user,
-            $request->input('per_page', config('pagination.per_page')),
+            $this->getPaginationLimit($request->input('per_page')),
             $request->input('search')
         );
 

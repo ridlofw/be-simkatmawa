@@ -5,6 +5,7 @@ namespace App\Services\Prestasi;
 use App\Enums\StatusInternal;
 use App\Models\PrestasiMandiri;
 use App\Models\User;
+use App\Traits\HasPagination;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
@@ -21,6 +22,8 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  */
 class PrestasiService
 {
+    use HasPagination;
+
     // ========================================================================
     // READ OPERATIONS
     // ========================================================================
@@ -54,7 +57,7 @@ class PrestasiService
             $query->where('lomba', 'like', '%' . $filters['search'] . '%');
         }
 
-        return $query->orderByDesc('created_at')->paginate(config('pagination.per_page'));
+        return $query->orderByDesc('created_at')->paginate($this->getPaginationLimit($filters['limit'] ?? null));
     }
 
     /**

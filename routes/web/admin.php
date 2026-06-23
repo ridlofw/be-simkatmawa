@@ -35,5 +35,13 @@ Route::middleware('role:admin|superadmin')->group(function () {
         Route::get('/{id}', 'show');
     });
 
+    // --- Sync Queue Monitoring ---
+    Route::prefix('sync-queue')->controller(\App\Http\Controllers\Api\V1\Admin\SyncQueueController::class)->group(function () {
+        Route::get('/stats', 'stats');
+        Route::get('/', 'index');
+        Route::post('/{id}/retry', 'retry');
+        Route::post('/retry-all', 'retryAll');
+    });
+
 });
 Route::get('/dashboard', [DashboardController::class, 'index']);

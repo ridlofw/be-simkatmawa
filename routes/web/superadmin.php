@@ -37,4 +37,10 @@ Route::middleware('role:superadmin')->group(function () {
         Route::delete('/{id}', 'destroy');
     });
 
+    // --- Sync Queue Control (Play/Pause + Error Detail) ---
+    Route::prefix('sync-queue')->controller(\App\Http\Controllers\Api\V1\Superadmin\SyncQueueController::class)->group(function () {
+        Route::post('/toggle', 'toggle');
+        Route::get('/{id}', 'show');
+    });
+
 });

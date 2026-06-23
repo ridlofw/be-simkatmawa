@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Services\Admin\VerifikasiService;
 use App\Traits\ApiResponse;
+use App\Traits\HasPagination;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\Validator;
  */
 class VerifikasiController extends Controller
 {
-    use ApiResponse;
+    use ApiResponse, HasPagination;
 
     public function __construct(
         private readonly VerifikasiService $verifikasiService
@@ -32,7 +33,7 @@ class VerifikasiController extends Controller
 
         // Ambil parameter status dan limit dari URL, dengan nilai default
         $status = $request->query('status', 'PENDING');
-        $limit = $request->query('limit', config('pagination.per_page'));
+        $limit = $this->getPaginationLimit($request->query('limit'));
 
         $paginated = $this->verifikasiService->getQueue($tipeKegiatan, $status, $limit);
 

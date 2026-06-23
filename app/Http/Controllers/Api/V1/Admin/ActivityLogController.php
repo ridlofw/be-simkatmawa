@@ -7,12 +7,13 @@ use App\Http\Resources\ActivityLogCollection;
 use App\Http\Resources\ActivityLogResource;
 use App\Services\ActivityLog\ActivityLogService;
 use App\Traits\ApiResponse;
+use App\Traits\HasPagination;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ActivityLogController extends Controller
 {
-    use ApiResponse;
+    use ApiResponse, HasPagination;
 
     public function __construct(
         private readonly ActivityLogService $activityLogService
@@ -21,7 +22,7 @@ class ActivityLogController extends Controller
     public function index(Request $request): JsonResponse|ActivityLogCollection
     {
         $activities = $this->activityLogService->getAllLogs(
-            perPage: $request->input('per_page', config('pagination.per_page')),
+            perPage: $this->getPaginationLimit($request->input('per_page')),
             search: $request->input('search'),
             causerId: $request->input('causer_id'),
             causerType: $request->input('causer_type'),

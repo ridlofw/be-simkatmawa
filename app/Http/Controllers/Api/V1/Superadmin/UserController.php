@@ -5,13 +5,14 @@ namespace App\Http\Controllers\Api\V1\Superadmin;
 use App\Http\Controllers\Controller;
 use App\Services\Superadmin\UserService;
 use App\Traits\ApiResponse;
+use App\Traits\HasPagination;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rules\Password;
 
 class UserController extends Controller
 {
-    use ApiResponse;
+    use ApiResponse, HasPagination;
 
     public function __construct(
         private readonly UserService $userService
@@ -22,7 +23,7 @@ class UserController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $limit = $request->query('limit', config('pagination.per_page'));
+        $limit = $this->getPaginationLimit($request->query('limit'));
         $search = $request->query('search');
         $role = $request->query('role');
         $status = $request->query('status'); // 'active', 'inactive'

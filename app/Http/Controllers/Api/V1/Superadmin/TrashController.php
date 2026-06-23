@@ -5,12 +5,13 @@ namespace App\Http\Controllers\Api\V1\Superadmin;
 use App\Http\Controllers\Controller;
 use App\Services\Superadmin\TrashService;
 use App\Traits\ApiResponse;
+use App\Traits\HasPagination;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class TrashController extends Controller
 {
-    use ApiResponse;
+    use ApiResponse, HasPagination;
 
     public function __construct(
         private readonly TrashService $trashService
@@ -25,7 +26,7 @@ class TrashController extends Controller
             return $this->errorResponse("Tipe kegiatan '$tipeKegiatan' tidak valid.", 400);
         }
 
-        $limit = $request->query('limit', config('pagination.per_page'));
+        $limit = $this->getPaginationLimit($request->query('limit'));
         $search = $request->query('search');
         $status = $request->query('status'); // untuk filter status_internal jika ada
 

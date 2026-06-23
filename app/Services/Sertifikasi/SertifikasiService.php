@@ -5,6 +5,7 @@ namespace App\Services\Sertifikasi;
 use App\Enums\StatusInternal;
 use App\Models\Sertifikasi;
 use App\Models\User;
+use App\Traits\HasPagination;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -15,6 +16,8 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  */
 class SertifikasiService
 {
+    use HasPagination;
+
     public function getByMahasiswa(string $nim, array $filters = []): LengthAwarePaginator
     {
         $query = Sertifikasi::whereHas('mahasiswa', function ($q) use ($nim) {
@@ -31,7 +34,7 @@ class SertifikasiService
             $query->where('nama', 'like', '%' . $filters['search'] . '%');
         }
 
-        return $query->orderByDesc('created_at')->paginate(config('pagination.per_page'));
+        return $query->orderByDesc('created_at')->paginate($this->getPaginationLimit($filters['limit'] ?? null));
     }
 
     public function findById(int $id): Sertifikasi
