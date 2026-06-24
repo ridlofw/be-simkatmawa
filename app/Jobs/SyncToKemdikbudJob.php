@@ -8,6 +8,7 @@ use App\Exceptions\Sync\SyncException;
 use App\Exceptions\Sync\SyncValidationException;
 use App\Models\SyncQueue;
 use App\Services\Kemdikbud\SyncService;
+use App\Services\NotificationService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -102,6 +103,12 @@ class SyncToKemdikbudJob implements ShouldQueue
                 'error' => $e->getMessage(),
             ]);
 
+            // System alert ke semua superadmin (auth failure = kritis)
+            app(NotificationService::class)->systemAlert(
+                'Sync Queue: Autentikasi Gagal',
+                'Queue telah di-pause otomatis karena token expired/invalid. Periksa konfigurasi API Kemdiktisaintek.'
+            );
+
         } catch (SyncValidationException $e) {
             // Validation error (422) → gagal permanen, jangan retry
             $item->markAsFailedPermanent($e->errorCode, $e->getMessage(), $e->errorDetail);
@@ -145,6 +152,12 @@ class SyncToKemdikbudJob implements ShouldQueue
                 'attempts' => $currentAttempt,
                 'error' => $e->getMessage(),
             ]);
+
+            // Queue alert ke admin + superadmin (throttled 5 menit)
+            app(NotificationService::class)->queueAlert(
+                "Sinkronisasi {$item->getKategoriLabel()} gagal setelah {$currentAttempt}x percobaan.",
+                SyncQueue::failed()->count()
+            );
         } else {
             // Masih bisa retry → antrikan kembali dengan backoff
             $item->markAsRetryWaiting($e->errorCode, $e->getMessage(), $e->errorDetail);

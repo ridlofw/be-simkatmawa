@@ -17,3 +17,12 @@ Artisan::command('inspire', function () {
 */
 Schedule::command('sync:process-queue')->everyMinute();
 Schedule::command('sync:clean-history')->daily();
+
+/*
+|--------------------------------------------------------------------------
+| Notification Cleanup
+|--------------------------------------------------------------------------
+| Hapus notifikasi yang lebih tua dari 6 bulan (retention policy).
+*/
+Schedule::command('notifications:clean')->daily();
+

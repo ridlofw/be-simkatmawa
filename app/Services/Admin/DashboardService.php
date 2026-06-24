@@ -20,9 +20,20 @@ class DashboardService
      */
     public function getDashboardData(): array
     {
+        // 1. Ambil agregat status dari ketiga tabel hanya dalam 3 query menggunakan Eloquent (menghindari salah nama tabel)
+        $prestasiStats = PrestasiMandiri::select('status_internal', DB::raw('count(*) as total'))->groupBy('status_internal')->get();
+        $sertifikasiStats = Sertifikasi::select('status_internal', DB::raw('count(*) as total'))->groupBy('status_internal')->get();
+        $rekognisiStats = Rekognisi::select('status_internal', DB::raw('count(*) as total'))->groupBy('status_internal')->get();
+
+        $statsData = [
+            'prestasi' => $prestasiStats,
+            'sertifikasi' => $sertifikasiStats,
+            'rekognisi' => $rekognisiStats,
+        ];
+
         return [
-            'stats' => $this->getStatistics(),
-            'approval_rates' => $this->getApprovalRates(),
+            'stats' => $this->getStatistics($statsData),
+            'approval_rates' => $this->getApprovalRates($statsData),
             'trends' => $this->getSubmissionTrends(),
             'recent_activities' => $this->getRecentActivities(),
         ];
@@ -31,32 +42,52 @@ class DashboardService
     /**
      * Kartu statistik (Kategori & Status).
      */
-    private function getStatistics(): array
+    private function getStatistics(array $statsData): array
     {
-        $totalPrestasi = PrestasiMandiri::count();
-        $totalSertifikasi = Sertifikasi::count();
-        $totalRekognisi = Rekognisi::count();
+        $sumStatus = function ($stats, $statusMatch) {
+            $sum = 0;
+            foreach ($stats as $stat) {
+                // Di Laravel 11, cast Enum bisa jadi menghasilkan object Enum. Ambil value-nya jika iya.
+                $statusVal = is_object($stat->status_internal) ? $stat->status_internal->value : $stat->status_internal;
+                
+                if (!$statusVal) continue;
 
-        // Hitung akumulasi status pengajuan dari ke-3 tabel sekaligus
-        $pendingCount = PrestasiMandiri::where('status_internal', 'PENDING')->count()
-            + Sertifikasi::where('status_internal', 'PENDING')->count()
-            + Rekognisi::where('status_internal', 'PENDING')->count();
+                if ($statusMatch === 'PENDING' && $statusVal === 'PENDING') {
+                    $sum += $stat->total;
+                } elseif ($statusMatch === 'APPROVED' && str_starts_with($statusVal, 'APPROVED')) {
+                    $sum += $stat->total;
+                } elseif ($statusMatch === 'REJECTED' && $statusVal === 'REJECTED') {
+                    $sum += $stat->total;
+                }
+            }
+            return $sum;
+        };
 
-        $approvedCount = PrestasiMandiri::where('status_internal', 'like', 'APPROVED%')->count()
-            + Sertifikasi::where('status_internal', 'like', 'APPROVED%')->count()
-            + Rekognisi::where('status_internal', 'like', 'APPROVED%')->count();
-
-        $rejectedCount = PrestasiMandiri::where('status_internal', 'REJECTED')->count()
-            + Sertifikasi::where('status_internal', 'REJECTED')->count()
-            + Rekognisi::where('status_internal', 'REJECTED')->count();
+        $sumTotal = function ($stats) {
+            $sum = 0;
+            foreach ($stats as $stat) {
+                $sum += $stat->total;
+            }
+            return $sum;
+        };
 
         return [
-            'total_prestasi' => $totalPrestasi,
-            'total_sertifikasi' => $totalSertifikasi,
-            'total_rekognisi' => $totalRekognisi,
-            'status_pending' => $pendingCount,
-            'status_approved' => $approvedCount,
-            'status_rejected' => $rejectedCount,
+            'total_prestasi' => $sumTotal($statsData['prestasi']),
+            'total_sertifikasi' => $sumTotal($statsData['sertifikasi']),
+            'total_rekognisi' => $sumTotal($statsData['rekognisi']),
+            
+            'status_pending' => $sumStatus($statsData['prestasi'], 'PENDING') 
+                              + $sumStatus($statsData['sertifikasi'], 'PENDING') 
+                              + $sumStatus($statsData['rekognisi'], 'PENDING'),
+                              
+            'status_approved' => $sumStatus($statsData['prestasi'], 'APPROVED') 
+                               + $sumStatus($statsData['sertifikasi'], 'APPROVED') 
+                               + $sumStatus($statsData['rekognisi'], 'APPROVED'),
+                               
+            'status_rejected' => $sumStatus($statsData['prestasi'], 'REJECTED') 
+                               + $sumStatus($statsData['sertifikasi'], 'REJECTED') 
+                               + $sumStatus($statsData['rekognisi'], 'REJECTED'),
+                               
             'trend_prestasi' => '+0%',
             'trend_sertifikasi' => '+0%',
             'trend_rekognisi' => '+0%',
@@ -66,21 +97,33 @@ class DashboardService
     /**
      * Data graph: Approval Rates (Lengkap 3 Kategori).
      */
-    private function getApprovalRates(): array
+    private function getApprovalRates(array $statsData): array
     {
-        $approvedPrestasi = PrestasiMandiri::where('status_internal', 'like', 'APPROVED%')->count();
-        $rejectedPrestasi = PrestasiMandiri::where('status_internal', 'REJECTED')->count();
+        $getRate = function ($stats) {
+            $approved = 0;
+            $rejected = 0;
+            foreach ($stats as $stat) {
+                $statusVal = is_object($stat->status_internal) ? $stat->status_internal->value : $stat->status_internal;
+                
+                if (!$statusVal) continue;
 
-        $approvedSertifikasi = Sertifikasi::where('status_internal', 'like', 'APPROVED%')->count();
-        $rejectedSertifikasi = Sertifikasi::where('status_internal', 'REJECTED')->count();
+                if (str_starts_with($statusVal, 'APPROVED')) {
+                    $approved += $stat->total;
+                } elseif ($statusVal === 'REJECTED') {
+                    $rejected += $stat->total;
+                }
+            }
+            return ['approved' => $approved, 'rejected' => $rejected];
+        };
 
-        $approvedRekognisi = Rekognisi::where('status_internal', 'like', 'APPROVED%')->count();
-        $rejectedRekognisi = Rekognisi::where('status_internal', 'REJECTED')->count();
+        $prestasi = $getRate($statsData['prestasi']);
+        $sertifikasi = $getRate($statsData['sertifikasi']);
+        $rekognisi = $getRate($statsData['rekognisi']);
 
         return [
-            ['category' => 'Prestasi', 'approved' => $approvedPrestasi, 'rejected' => $rejectedPrestasi],
-            ['category' => 'Sertifikasi', 'approved' => $approvedSertifikasi, 'rejected' => $rejectedSertifikasi],
-            ['category' => 'Rekognisi', 'approved' => $approvedRekognisi, 'rejected' => $rejectedRekognisi],
+            ['category' => 'Prestasi', 'approved' => $prestasi['approved'], 'rejected' => $prestasi['rejected']],
+            ['category' => 'Sertifikasi', 'approved' => $sertifikasi['approved'], 'rejected' => $sertifikasi['rejected']],
+            ['category' => 'Rekognisi', 'approved' => $rekognisi['approved'], 'rejected' => $rekognisi['rejected']],
         ];
     }
 
@@ -89,17 +132,30 @@ class DashboardService
      */
     private function getSubmissionTrends(): array
     {
+        $startDate = Carbon::now()->subMonths(5)->startOfMonth();
+        
+        // Optimasi: 3 Query menggunakan GROUP BY (mengatasi 18 query looping)
+        $getTrends = function ($modelClass) use ($startDate) {
+            return $modelClass::select(DB::raw("DATE_FORMAT(created_at, '%Y-%m') as month_year"), DB::raw('count(*) as total'))
+                ->where('created_at', '>=', $startDate)
+                ->groupBy('month_year')
+                ->pluck('total', 'month_year')
+                ->toArray();
+        };
+
+        $prestasiCounts = $getTrends(PrestasiMandiri::class);
+        $sertifikasiCounts = $getTrends(Sertifikasi::class);
+        $rekognisiCounts = $getTrends(Rekognisi::class);
+
         $trends = [];
         for ($i = 5; $i >= 0; $i--) {
             $monthDate = Carbon::now()->subMonths($i);
-            $monthName = $monthDate->translatedFormat('M'); // Mengambil nama bulan singkat (Jan, Feb, Mrt, dst)
-            $start = $monthDate->copy()->startOfMonth();
-            $end = $monthDate->copy()->endOfMonth();
+            $monthName = $monthDate->translatedFormat('M');
+            $monthKey = $monthDate->format('Y-m');
 
-            // Gabungkan total submit bulan tersebut dari ketiga jenis pengajuan
-            $monthlyCount = PrestasiMandiri::whereBetween('created_at', [$start, $end])->count()
-                + Sertifikasi::whereBetween('created_at', [$start, $end])->count()
-                + Rekognisi::whereBetween('created_at', [$start, $end])->count();
+            $monthlyCount = ($prestasiCounts[$monthKey] ?? 0)
+                          + ($sertifikasiCounts[$monthKey] ?? 0)
+                          + ($rekognisiCounts[$monthKey] ?? 0);
 
             $trends[] = [
                 'month' => $monthName,
@@ -128,7 +184,7 @@ class DashboardService
                 $recentActivities[] = [
                     'id' => $log->id,
                     'user_name' => $log->user_name ?? 'System',
-                    'action' => $log->event ?? 'updated', // Berisi 'created', 'updated', atau 'deleted'
+                    'action' => $log->event ?? 'updated', 
                     'target' => $log->description ?? 'Melakukan modifikasi pengajuan',
                     'created_at' => $log->created_at,
                 ];

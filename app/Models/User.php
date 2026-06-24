@@ -67,6 +67,7 @@ class User extends Authenticatable
         return LogOptions::defaults()
             ->logOnly(['name', 'email'])
             ->logOnlyDirty()
+            ->dontSubmitEmptyLogs()
             ->useLogName('user');
     }
 

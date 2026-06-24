@@ -3,6 +3,7 @@
 namespace App\Services\Admin;
 
 use App\Models\User;
+use App\Services\NotificationService;
 use App\Services\Sync\SyncQueueService;
 use App\Traits\ResolvesModelType;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -111,6 +112,9 @@ class VerifikasiService
             // Masukkan ke antrean sinkronisasi (diproses oleh ProcessSyncQueue command)
             $this->syncQueueService->enqueue($pengajuan);
 
+            // Notifikasi ke mahasiswa: "Pengajuan Disetujui"
+            app(NotificationService::class)->submissionApproved($pengajuan);
+
         } elseif ($status === 'REJECT') {
             $pengajuan->update([
                 'status_internal' => 'REJECTED',
@@ -118,6 +122,9 @@ class VerifikasiService
                 'approved_by' => $adminId,
                 'approved_at' => $now,
             ]);
+
+            // Notifikasi ke mahasiswa: "Pengajuan Ditolak"
+            app(NotificationService::class)->submissionRejected($pengajuan, $alasanPenolakan);
         }
 
         return $pengajuan;

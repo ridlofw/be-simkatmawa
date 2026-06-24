@@ -47,15 +47,23 @@ class SyncQueueService
             ")
             ->first();
 
+        // Optimasi: Ambil semua setting sekaligus (menghindari 4 query terpisah/N+1)
+        $settings = Setting::whereIn('key', [
+            'sync_queue_paused',
+            'sync_queue_paused_by',
+            'sync_queue_paused_at',
+            'sync_queue_pause_reason'
+        ])->pluck('value', 'key');
+
         return [
             'pending' => (int) ($counts->pending ?? 0),
             'processing' => (int) ($counts->processing ?? 0),
             'success' => (int) ($counts->success ?? 0),
             'failed' => (int) ($counts->failed ?? 0),
-            'is_paused' => $this->isPaused(),
-            'paused_by' => Setting::getValue('sync_queue_paused_by'),
-            'paused_at' => Setting::getValue('sync_queue_paused_at'),
-            'pause_reason' => Setting::getValue('sync_queue_pause_reason'),
+            'is_paused' => ($settings['sync_queue_paused'] ?? 'false') === 'true',
+            'paused_by' => $settings['sync_queue_paused_by'] ?? null,
+            'paused_at' => $settings['sync_queue_paused_at'] ?? null,
+            'pause_reason' => $settings['sync_queue_pause_reason'] ?? null,
         ];
     }
 
@@ -98,7 +106,22 @@ class SyncQueueService
             return null;
         }
 
+        $previousStatus = $item->status->value;
         $item->resetForRetry();
+
+        // Audit log: catat siapa yang retry item ini
+        activity()
+            ->causedBy(auth()->user())
+            ->performedOn($item)
+            ->useLog('sync-queue')
+            ->event('retry')
+            ->withProperties([
+                'sync_queue_id' => $item->id,
+                'previous_status' => $previousStatus,
+                'syncable_type' => $item->syncable_type,
+                'syncable_id' => $item->syncable_id,
+            ])
+            ->log('Retry sync queue item');
 
         return $item->fresh();
     }
@@ -114,7 +137,22 @@ class SyncQueueService
             $item->resetForRetry();
         }
 
-        return $failedItems->count();
+        $count = $failedItems->count();
+
+        // Audit log: catat siapa yang retry semua item gagal
+        if ($count > 0) {
+            activity()
+                ->causedBy(auth()->user())
+                ->useLog('sync-queue')
+                ->event('retry-all')
+                ->withProperties([
+                    'retried_count' => $count,
+                    'retried_ids' => $failedItems->pluck('id')->toArray(),
+                ])
+                ->log("Retry semua item gagal ({$count} item)");
+        }
+
+        return $count;
     }
 
     /**
@@ -135,6 +173,17 @@ class SyncQueueService
             Setting::setValue('sync_queue_paused_at', null);
             Setting::setValue('sync_queue_pause_reason', null);
         }
+
+        // Audit log: catat siapa yang play/pause queue
+        activity()
+            ->causedBy(auth()->user())
+            ->useLog('sync-queue')
+            ->event($action)
+            ->withProperties([
+                'action' => $action,
+                'reason' => 'MANUAL',
+            ])
+            ->log($isPausing ? 'Sync queue di-pause' : 'Sync queue di-resume');
 
         return [
             'is_paused' => $isPausing,
@@ -159,6 +208,17 @@ class SyncQueueService
         Setting::setValue('sync_queue_paused_by', 'SYSTEM');
         Setting::setValue('sync_queue_paused_at', now()->toIso8601String());
         Setting::setValue('sync_queue_pause_reason', $reason);
+
+        // Audit log: catat auto-pause oleh sistem
+        activity()
+            ->useLog('sync-queue')
+            ->event('auto-pause')
+            ->withProperties([
+                'action' => 'pause',
+                'reason' => $reason,
+                'triggered_by' => 'SYSTEM',
+            ])
+            ->log("Sync queue auto-pause: {$reason}");
     }
 
     /**

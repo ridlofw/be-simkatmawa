@@ -26,7 +26,8 @@ class AuthService
 
         $token = $user->createToken('auth-token')->plainTextToken;
 
-        $user->update(['last_login_at' => now()]);
+        // Update last_login tanpa mencatat ke activity log (bukan human action)
+        activity()->withoutLogs(fn () => $user->update(['last_login_at' => now()]));
 
         // Ambil role dari Spatie Permission
         $role = $user->getRoleNames()->first(); // 'mahasiswa', 'admin', 'superadmin'

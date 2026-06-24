@@ -4,6 +4,7 @@ namespace App\Services\Sertifikasi;
 
 use App\Enums\StatusInternal;
 use App\Models\Sertifikasi;
+use App\Services\NotificationService;
 use App\Models\User;
 use App\Traits\HasPagination;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -45,7 +46,7 @@ class SertifikasiService
 
     public function create(array $validated, User $user): Sertifikasi
     {
-        return DB::transaction(function () use ($validated, $user) {
+        $result = DB::transaction(function () use ($validated, $user) {
             $mahasiswaData = $validated['mahasiswa'];
             $dosenData = $validated['dosen'];
             unset($validated['mahasiswa'], $validated['dosen']);
@@ -67,6 +68,11 @@ class SertifikasiService
             $sertifikasi->load(['mahasiswa', 'dosen']);
             return $sertifikasi;
         });
+
+        // Kirim notifikasi "Pengajuan Terkirim" ke mahasiswa (di luar transaction)
+        app(NotificationService::class)->submissionSent($result, $user);
+
+        return $result;
     }
 
     public function update(int $id, array $validated, User $user): Sertifikasi
@@ -87,7 +93,8 @@ class SertifikasiService
             $dosenData = $validated['dosen'];
             unset($validated['mahasiswa'], $validated['dosen']);
 
-            if ($sertifikasi->status_internal === StatusInternal::REJECTED) {
+            $wasRejected = $sertifikasi->status_internal === StatusInternal::REJECTED;
+            if ($wasRejected) {
                 $validated['status_internal'] = StatusInternal::PENDING;
                 $validated['alasan_penolakan'] = null;
             }
@@ -104,6 +111,12 @@ class SertifikasiService
             $sertifikasi->dosen()->sync($dosenPivot);
 
             $sertifikasi->load(['mahasiswa', 'dosen']);
+
+            // Notifikasi ke admin yang menolak: "Revisi Telah Diperbaiki"
+            if ($wasRejected) {
+                app(NotificationService::class)->revisionResubmitted($sertifikasi);
+            }
+
             return $sertifikasi;
         });
     }

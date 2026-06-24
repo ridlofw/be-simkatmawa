@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Auth\AuthController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\ReferensiController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\V1\Admin\DashboardController;
@@ -50,6 +51,17 @@ Route::prefix('v1')->group(function () {
             Route::get('/enums', 'enums');
             Route::get('/mahasiswa', 'searchMahasiswa');
             Route::get('/dosen', 'searchDosen');
+        });
+
+        // ==============================
+        // B2. NOTIFIKASI (Global — semua role, scoped per user)
+        // ==============================
+        Route::prefix('notifications')->controller(NotificationController::class)->group(function () {
+            Route::get('/', 'index');
+            Route::get('/unread-count', 'unreadCount');
+            Route::patch('/{id}/read', 'markAsRead');
+            Route::patch('/read-all', 'markAllAsRead');
+            Route::delete('/{id}', 'destroy');
         });
 
         // ==============================

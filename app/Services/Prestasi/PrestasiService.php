@@ -4,6 +4,7 @@ namespace App\Services\Prestasi;
 
 use App\Enums\StatusInternal;
 use App\Models\PrestasiMandiri;
+use App\Services\NotificationService;
 use App\Models\User;
 use App\Traits\HasPagination;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -87,7 +88,7 @@ class PrestasiService
      */
     public function create(array $validated, User $user): PrestasiMandiri
     {
-        return DB::transaction(function () use ($validated, $user) {
+        $result = DB::transaction(function () use ($validated, $user) {
             // 1. Pisahkan data pivot dari data utama
             $mahasiswaData = $validated['mahasiswa'];
             $dosenData = $validated['dosen'];
@@ -117,6 +118,11 @@ class PrestasiService
 
             return $prestasi;
         });
+
+        // 6. Kirim notifikasi "Pengajuan Terkirim" ke mahasiswa (di luar transaction)
+        app(NotificationService::class)->submissionSent($result, $user);
+
+        return $result;
     }
 
     // ========================================================================
@@ -159,7 +165,8 @@ class PrestasiService
             unset($validated['mahasiswa'], $validated['dosen']);
 
             // 2. Reset status jika dari REJECTED → PENDING (PRD §3.3 Rejection Flow)
-            if ($prestasi->status_internal === StatusInternal::REJECTED) {
+            $wasRejected = $prestasi->status_internal === StatusInternal::REJECTED;
+            if ($wasRejected) {
                 $validated['status_internal'] = StatusInternal::PENDING;
                 $validated['alasan_penolakan'] = null;
             }
@@ -181,6 +188,11 @@ class PrestasiService
 
             // 5. Refresh model + relasi
             $prestasi->load(['mahasiswa', 'dosen']);
+
+            // 6. Notifikasi ke admin yang menolak: "Revisi Telah Diperbaiki"
+            if ($wasRejected) {
+                app(NotificationService::class)->revisionResubmitted($prestasi);
+            }
 
             return $prestasi;
         });
