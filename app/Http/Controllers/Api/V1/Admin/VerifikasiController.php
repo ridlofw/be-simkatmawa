@@ -82,10 +82,17 @@ class VerifikasiController extends Controller
         // Validasi input dari frontend
         $validator = Validator::make($request->all(), [
             'status' => 'required|in:APPROVE,REJECT',
-            'alasan_penolakan' => 'required_if:status,REJECT|nullable|string'
-        ], [
-            'alasan_penolakan.required_if' => 'Alasan penolakan wajib diisi jika menolak pengajuan.'
+            'alasan_penolakan_id' => 'nullable|integer|exists:alasan_penolakan,id',
+            'alasan_penolakan' => 'nullable|string'
         ]);
+
+        $validator->after(function ($v) use ($request) {
+            if ($request->input('status') === 'REJECT') {
+                if (!$request->input('alasan_penolakan_id') && empty(trim($request->input('alasan_penolakan', '')))) {
+                    $v->errors()->add('alasan_penolakan', 'Alasan penolakan atau pilihan alasan cepat wajib diisi jika menolak pengajuan.');
+                }
+            }
+        });
 
         if ($validator->fails()) {
             return $this->errorResponse('Validasi gagal.', 422, $validator->errors()->toArray());
@@ -98,7 +105,8 @@ class VerifikasiController extends Controller
             $id,
             $status,
             $request->input('alasan_penolakan'),
-            $request->user()
+            $request->user(),
+            $request->input('alasan_penolakan_id')
         );
 
         if (!$pengajuan) {

@@ -19,6 +19,21 @@ class RekognisiService
 {
     use HasPagination;
 
+    /**
+     * Mapping sidebar FE → enum JenisRekognisi.
+     * Digunakan untuk filter `jenis_group` query parameter.
+     */
+    public const JENIS_GROUP_MAP = [
+        'juri'       => ['JURIOR', 'JURINOR'],
+        'keynote'    => ['KEYCONF', 'KEYWORK'],
+        'karya_seni' => ['PAMERAN', 'KARYA'],
+        'buku'       => ['BUKU'],
+        'paten'      => ['PATEN'],
+        'publikasi'  => ['PUB'],
+        'duta'       => ['DUTA'],
+        'produk'     => ['PTG', 'PSB', 'PKD'],
+    ];
+
     public function getByMahasiswa(string $nim, array $filters = []): LengthAwarePaginator
     {
         $query = Rekognisi::whereHas('mahasiswa', function ($q) use ($nim) {
@@ -33,6 +48,14 @@ class RekognisiService
         }
         if (!empty($filters['search'])) {
             $query->where('nama', 'like', '%' . $filters['search'] . '%');
+        }
+
+        // Filter by jenis_group (sidebar FE: juri, keynote, karya_seni, buku, paten, publikasi, duta, produk)
+        if (!empty($filters['jenis_group'])) {
+            $jenisValues = self::JENIS_GROUP_MAP[$filters['jenis_group']] ?? null;
+            if ($jenisValues) {
+                $query->whereIn('jenis', $jenisValues);
+            }
         }
 
         return $query->orderByDesc('created_at')->paginate($this->getPaginationLimit($filters['limit'] ?? null));

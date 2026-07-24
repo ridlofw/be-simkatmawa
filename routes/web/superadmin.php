@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Superadmin\AlasanPenolakanController;
 use App\Http\Controllers\Api\V1\Superadmin\SettingsController;
 use App\Http\Controllers\Api\V1\Superadmin\TrashController;
 use App\Http\Controllers\Api\V1\Superadmin\UserController;
@@ -15,6 +16,15 @@ use Illuminate\Support\Facades\Route;
 */
 
 Route::middleware('role:superadmin')->group(function () {
+
+    // --- Master Alasan Penolakan ---
+    Route::prefix('alasan-penolakan')->controller(AlasanPenolakanController::class)->group(function () {
+        Route::get('/', 'index');
+        Route::post('/', 'store');
+        Route::get('/{id}', 'show');
+        Route::put('/{id}', 'update');
+        Route::delete('/{id}', 'destroy');
+    });
 
     // --- Settings: Kredensial Kemdikbud ---
     Route::prefix('settings')->controller(SettingsController::class)->group(function () {

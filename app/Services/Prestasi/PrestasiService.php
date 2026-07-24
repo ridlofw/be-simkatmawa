@@ -53,6 +53,11 @@ class PrestasiService
             $query->where('level', $filters['level']);
         }
 
+        // Filter by kategori (RISNOV, RISNOVSSH, SENBUD, OLAHRAGA, MINAT)
+        if (!empty($filters['kategori'])) {
+            $query->where('kategori', $filters['kategori']);
+        }
+
         // Search by nama lomba
         if (!empty($filters['search'])) {
             $query->where('lomba', 'like', '%' . $filters['search'] . '%');

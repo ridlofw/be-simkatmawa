@@ -51,6 +51,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/enums', 'enums');
             Route::get('/mahasiswa', 'searchMahasiswa');
             Route::get('/dosen', 'searchDosen');
+            Route::get('/alasan-penolakan', 'alasanPenolakan');
         });
 
         // ==============================

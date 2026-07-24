@@ -20,6 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
 
+        // 0. TRUST PROXIES — Diperlukan untuk Cloudflare Tunnel / reverse proxy
+        //    Agar Laravel membaca X-Forwarded-* headers dengan benar (HTTPS, IP asli)
+        $middleware->trustProxies(at: '*');
+
         // 1. MATIKAN PENGECEKAN CSRF UNTUK SEMUA ROUTE API
         $middleware->validateCsrfTokens(except: [
             'api/*',

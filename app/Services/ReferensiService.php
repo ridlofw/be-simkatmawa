@@ -34,6 +34,18 @@ class ReferensiService
             'jenis_rekognisi' => array_column(JenisRekognisi::cases(), 'value'),
             'status_internal' => array_column(StatusInternal::cases(), 'value'),
             'roles' => Role::pluck('name')->toArray(),
+
+            // Mapping sidebar FE Rekognisi → enum JenisRekognisi yang valid per kelompok
+            'rekognisi_jenis_group' => [
+                ['key' => 'juri',       'label' => 'Juri',        'jenis' => ['JURIOR', 'JURINOR']],
+                ['key' => 'keynote',    'label' => 'Keynote',     'jenis' => ['KEYCONF', 'KEYWORK']],
+                ['key' => 'karya_seni', 'label' => 'Karya Seni',  'jenis' => ['PAMERAN', 'KARYA']],
+                ['key' => 'buku',       'label' => 'Buku',        'jenis' => ['BUKU']],
+                ['key' => 'paten',      'label' => 'Paten',       'jenis' => ['PATEN']],
+                ['key' => 'publikasi',  'label' => 'Publikasi',   'jenis' => ['PUB']],
+                ['key' => 'duta',       'label' => 'Duta',        'jenis' => ['DUTA']],
+                ['key' => 'produk',     'label' => 'Produk',      'jenis' => ['PTG', 'PSB', 'PKD']],
+            ],
         ];
     }
 
@@ -79,5 +91,16 @@ class ReferensiService
                     'label' => $item->nama . ' - ' . $item->nuptk,
                 ];
             });
+    }
+
+    /**
+     * Lookup Alasan Penolakan — Ambil semua template alasan penolakan yang aktif.
+     */
+    public function getAlasanPenolakan(): Collection
+    {
+        return \App\Models\AlasanPenolakan::where('is_active', true)
+            ->select(['id', 'judul', 'alasan'])
+            ->orderBy('judul', 'asc')
+            ->get();
     }
 }

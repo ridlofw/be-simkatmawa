@@ -84,7 +84,8 @@ class VerifikasiService
         int $id,
         string $status,
         ?string $alasanPenolakan,
-        User $admin
+        User $admin,
+        ?int $alasanPenolakanId = null
     ): ?Model {
         $modelClass = $this->resolveModelClass($tipeKegiatan);
 
@@ -116,15 +117,28 @@ class VerifikasiService
             app(NotificationService::class)->submissionApproved($pengajuan);
 
         } elseif ($status === 'REJECT') {
+            // Resolusi teks alasan penolakan jika alasanPenolakanId diberikan
+            $finalReason = $alasanPenolakan;
+            if ($alasanPenolakanId) {
+                $masterReason = \App\Models\AlasanPenolakan::find($alasanPenolakanId);
+                if ($masterReason) {
+                    if (!empty($alasanPenolakan)) {
+                        $finalReason = $masterReason->alasan . ' (Catatan Tambahan: ' . $alasanPenolakan . ')';
+                    } else {
+                        $finalReason = $masterReason->alasan;
+                    }
+                }
+            }
+
             $pengajuan->update([
                 'status_internal' => 'REJECTED',
-                'alasan_penolakan' => $alasanPenolakan,
+                'alasan_penolakan' => $finalReason,
                 'approved_by' => $adminId,
                 'approved_at' => $now,
             ]);
 
             // Notifikasi ke mahasiswa: "Pengajuan Ditolak"
-            app(NotificationService::class)->submissionRejected($pengajuan, $alasanPenolakan);
+            app(NotificationService::class)->submissionRejected($pengajuan, $finalReason);
         }
 
         return $pengajuan;

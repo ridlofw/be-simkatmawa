@@ -36,7 +36,7 @@ class PrestasiController extends Controller
             return $this->errorResponse('Data mahasiswa tidak ditemukan untuk akun ini.', 404);
         }
 
-        $filters = $request->only(['status', 'level', 'search']);
+        $filters = $request->only(['status', 'level', 'search', 'kategori']);
         $prestasi = $this->prestasiService->getByMahasiswa($nim, $filters);
 
         return new PrestasiCollection($prestasi);

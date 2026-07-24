@@ -55,4 +55,14 @@ class ReferensiController extends Controller
 
         return $this->successResponse($dosen, 'Data dosen berhasil diambil.');
     }
+
+    /**
+     * [GET] Referensi Alasan Penolakan — List master alasan penolakan yang aktif.
+     */
+    public function alasanPenolakan(): JsonResponse
+    {
+        $reasons = $this->referensiService->getAlasanPenolakan();
+
+        return $this->successResponse($reasons, 'Data referensi alasan penolakan berhasil diambil.');
+    }
 }
