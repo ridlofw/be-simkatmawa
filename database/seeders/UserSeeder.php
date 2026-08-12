@@ -43,7 +43,7 @@ class UserSeeder extends Seeder
 
         $mhs2 = User::create([
             'name' => 'Adam Raga',
-            'email' => '111202416098@mhs.dinus.ac.id',
+            'email' => '111202415598@mhs.dinus.ac.id',
             'password' => Hash::make('mahasiswa2'),
             'email_verified_at' => now(),
         ]);
@@ -51,7 +51,7 @@ class UserSeeder extends Seeder
 
         $mhs3 = User::create([
             'name' => 'Syakira Fara Salsabila',
-            'email' => '111202416094@mhs.dinus.ac.id',
+            'email' => '111202415594@mhs.dinus.ac.id',
             'password' => Hash::make('mahasiswa3'),
             'email_verified_at' => now(),
         ]);

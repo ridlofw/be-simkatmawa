@@ -60,9 +60,12 @@ class Rekognisi extends Model
 
     // ========== RELASI ==========
 
+    /** Mahasiswa yang terlibat (pivot many-to-many, diurutkan berdasarkan posisi: 0=Ketua). */
     public function mahasiswa(): BelongsToMany
     {
-        return $this->belongsToMany(Mahasiswa::class, 'rekognisi_mahasiswa', 'rekognisi_id', 'nim');
+        return $this->belongsToMany(Mahasiswa::class, 'rekognisi_mahasiswa', 'rekognisi_id', 'nim')
+                    ->withPivot('urutan')
+                    ->orderByPivot('urutan');
     }
 
     public function dosen(): BelongsToMany

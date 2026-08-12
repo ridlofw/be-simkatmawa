@@ -45,9 +45,13 @@ class RekognisiResource extends JsonResource
             'alasan_penolakan' => $this->alasan_penolakan,
             'pusat_kemdikbud_id' => $this->pusat_kemdikbud_id,
 
-            // Relasi Pivot — Mahasiswa
+            // Relasi Pivot — Mahasiswa (diurutkan: urutan 0 = Ketua)
             'mahasiswa' => $this->whenLoaded('mahasiswa', fn() =>
-                $this->mahasiswa->map(fn($m) => ['nim' => $m->nim, 'nama' => $m->nama])
+                $this->mahasiswa->map(fn($m) => [
+                    'nim' => $m->nim,
+                    'nama' => $m->nama,
+                    'urutan' => $m->pivot->urutan,
+                ])
             ),
 
             // Relasi Pivot — Dosen

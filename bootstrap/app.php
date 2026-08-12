@@ -24,9 +24,10 @@ return Application::configure(basePath: dirname(__DIR__))
         //    Agar Laravel membaca X-Forwarded-* headers dengan benar (HTTPS, IP asli)
         $middleware->trustProxies(at: '*');
 
-        // 1. MATIKAN PENGECEKAN CSRF UNTUK SEMUA ROUTE API
+        // 1. MATIKAN PENGECEKAN CSRF UNTUK SEMUA ROUTE API & BROADCASTING AUTH
         $middleware->validateCsrfTokens(except: [
             'api/*',
+            'broadcasting/auth',
         ]);
 
         // 2. SANCTUM STATEFUL API — Menangani CORS preflight (OPTIONS) dengan benar

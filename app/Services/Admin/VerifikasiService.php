@@ -4,29 +4,75 @@ namespace App\Services\Admin;
 
 use App\Models\User;
 use App\Services\NotificationService;
+use App\Services\Rekognisi\RekognisiService;
 use App\Services\Sync\SyncQueueService;
+use App\Traits\HasFilterSort;
+use App\Traits\HasPagination;
 use App\Traits\ResolvesModelType;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Service Layer — Verifikasi Admin (Kontrak_API_Frontend.md §D).
- * Menangani logika antrean, detail, dan proses approval/rejection pengajuan.
+ * Service Layer — Verifikasi Admin (Unified Daftar Prestasi).
+ * Menangani logika listing (filter/sort/search), detail, dan proses approval/rejection.
  */
 class VerifikasiService
 {
-    use ResolvesModelType;
+    use ResolvesModelType, HasFilterSort, HasPagination;
 
     public function __construct(
         private readonly SyncQueueService $syncQueueService
     ) {}
 
     /**
-     * Ambil daftar antrean pengajuan (filterable by status).
+     * Konfigurasi filter & sort per tipe kegiatan.
+     * Mendefinisikan kolom yang boleh di-sort, di-filter, dan kolom search utama.
+     */
+    private function getFilterConfig(string $tipeKegiatan): array
+    {
+        return match ($tipeKegiatan) {
+            'prestasi' => [
+                'search_column'      => 'lomba',
+                'sortable_columns'   => [
+                    'created_at', 'lomba', 'cabang', 'penyelenggara', 'level',
+                    'kategori', 'peringkat', 'kelompok_prestasi', 'bentuk',
+                    'tgl_sertifikat', 'status_internal', 'approved_at',
+                ],
+                'filterable_columns' => ['kategori', 'level'],
+            ],
+            'rekognisi' => [
+                'search_column'      => 'nama',
+                'sortable_columns'   => [
+                    'created_at', 'nama', 'penyelenggara', 'level', 'jenis',
+                    'tgl_sertifikat', 'status_internal', 'approved_at',
+                ],
+                'filterable_columns' => ['level'],
+                'jenis_group_map'    => RekognisiService::JENIS_GROUP_MAP,
+            ],
+            'sertifikasi' => [
+                'search_column'      => 'nama',
+                'sortable_columns'   => [
+                    'created_at', 'nama', 'penyelenggara', 'level',
+                    'tgl_sertifikat', 'status_internal', 'approved_at',
+                ],
+                'filterable_columns' => ['level'],
+            ],
+            default => [
+                'search_column'      => null,
+                'sortable_columns'   => ['created_at'],
+                'filterable_columns' => [],
+            ],
+        };
+    }
+
+    /**
+     * Ambil daftar pengajuan dengan filter, sort, search, dan paginasi lengkap.
      *
+     * @param string $tipeKegiatan 'prestasi', 'rekognisi', atau 'sertifikasi'
+     * @param array $filters Query parameters dari request
      * @return LengthAwarePaginator|null null jika tipe kegiatan tidak valid
      */
-    public function getQueue(string $tipeKegiatan, string $status, int $limit): ?LengthAwarePaginator
+    public function getQueue(string $tipeKegiatan, array $filters): ?LengthAwarePaginator
     {
         $modelClass = $this->resolveModelClass($tipeKegiatan);
 
@@ -34,20 +80,14 @@ class VerifikasiService
             return null;
         }
 
-        // Load relasi mahasiswa
-        $query = $modelClass::with('mahasiswa');
+        // Load relasi lengkap untuk tabel admin
+        $query = $modelClass::with(['mahasiswa', 'dosen', 'creator:id,name', 'approver:id,name']);
 
-        // Filter status
-        if ($status !== 'all') {
-            // Mendukung pencarian banyak status sekaligus (dipisah koma) untuk halaman History
-            if (str_contains($status, ',')) {
-                $query->whereIn('status_internal', explode(',', $status));
-            } else {
-                $query->where('status_internal', $status);
-            }
-        }
+        // Terapkan semua filter, search, dan sort via trait HasFilterSort
+        $config = $this->getFilterConfig($tipeKegiatan);
+        $query = $this->applyFilters($query, $filters, $config);
 
-        return $query->latest()->paginate($limit);
+        return $query->paginate($this->getPaginationLimit($filters['limit'] ?? null));
     }
 
     /**
@@ -63,7 +103,7 @@ class VerifikasiService
             return null;
         }
 
-        return $modelClass::with(['mahasiswa', 'dosen'])->find($id);
+        return $modelClass::with(['mahasiswa', 'dosen', 'creator:id,name', 'approver:id,name'])->find($id);
     }
 
     /**

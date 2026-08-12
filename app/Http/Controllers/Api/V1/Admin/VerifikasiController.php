@@ -23,7 +23,7 @@ class VerifikasiController extends Controller
     ) {}
 
     /**
-     * [GET] Daftar antrean pengajuan (filterable by status).
+     * [GET] Daftar pengajuan (unified: filter, sort, search, paginasi).
      */
     public function index(Request $request, string $tipeKegiatan): JsonResponse
     {
@@ -31,16 +31,17 @@ class VerifikasiController extends Controller
             return $this->errorResponse("Tipe kegiatan '$tipeKegiatan' tidak valid.", 400);
         }
 
-        // Ambil parameter status dan limit dari URL, dengan nilai default
-        $status = $request->query('status', 'PENDING');
-        $limit = $this->getPaginationLimit($request->query('limit'));
+        // Collect semua query parameter filter/sort/search
+        $filters = $request->only([
+            'status', 'kategori', 'jenis_group', 'level', 'tahun',
+            'search', 'sort_by', 'sort_dir', 'limit', 'page'
+        ]);
 
-        $paginated = $this->verifikasiService->getQueue($tipeKegiatan, $status, $limit);
+        $paginated = $this->verifikasiService->getQueue($tipeKegiatan, $filters);
 
-        // Kembalikan response JSON custom (karena paginate() bawaan strukturnya berbeda)
         return response()->json([
             'success' => true,
-            'message' => "Data antrean $tipeKegiatan berhasil ditarik.",
+            'message' => "Data daftar $tipeKegiatan berhasil ditarik.",
             'data'    => $paginated->items(),
             'meta'    => [
                 'current_page' => $paginated->currentPage(),

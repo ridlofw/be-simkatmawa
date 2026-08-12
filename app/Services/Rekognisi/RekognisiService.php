@@ -79,8 +79,11 @@ class RekognisiService
                 'created_by' => $user->id,
             ]));
 
-            $nimList = collect($mahasiswaData)->pluck('nim')->toArray();
-            $rekognisi->mahasiswa()->attach($nimList);
+            $mahasiswaPivot = [];
+            foreach ($mahasiswaData as $index => $mhs) {
+                $mahasiswaPivot[$mhs['nim']] = ['urutan' => $index];
+            }
+            $rekognisi->mahasiswa()->attach($mahasiswaPivot);
 
             $dosenPivot = [];
             foreach ($dosenData as $dosen) {
@@ -124,8 +127,11 @@ class RekognisiService
 
             $rekognisi->update($validated);
 
-            $nimList = collect($mahasiswaData)->pluck('nim')->toArray();
-            $rekognisi->mahasiswa()->sync($nimList);
+            $mahasiswaPivot = [];
+            foreach ($mahasiswaData as $index => $mhs) {
+                $mahasiswaPivot[$mhs['nim']] = ['urutan' => $index];
+            }
+            $rekognisi->mahasiswa()->sync($mahasiswaPivot);
 
             $dosenPivot = [];
             foreach ($dosenData as $dosen) {

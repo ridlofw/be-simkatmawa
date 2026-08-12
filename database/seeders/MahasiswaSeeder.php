@@ -16,8 +16,8 @@ class MahasiswaSeeder extends Seeder
     {
         // Ambil user mahasiswa berdasarkan email untuk di-link ke NIM
         $ridlo = User::where('email', '111202416059@mhs.dinus.ac.id')->first();
-        $adam = User::where('email', '111202416098@mhs.dinus.ac.id')->first();
-        $syakira = User::where('email', '111202416094@mhs.dinus.ac.id')->first();
+        $adam = User::where('email', '111202415598@mhs.dinus.ac.id')->first();
+        $syakira = User::where('email', '111202415594@mhs.dinus.ac.id')->first();
 
         Mahasiswa::create([
             'nim' => 'A11.2024.16059',

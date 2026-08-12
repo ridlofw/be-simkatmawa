@@ -71,10 +71,12 @@ class PrestasiMandiri extends Model
 
     // ========== RELASI ==========
 
-    /** Mahasiswa yang terlibat (pivot many-to-many). */
+    /** Mahasiswa yang terlibat (pivot many-to-many, diurutkan berdasarkan posisi: 0=Ketua). */
     public function mahasiswa(): BelongsToMany
     {
-        return $this->belongsToMany(Mahasiswa::class, 'prestasi_mandiri_mahasiswa', 'prestasi_mandiri_id', 'nim');
+        return $this->belongsToMany(Mahasiswa::class, 'prestasi_mandiri_mahasiswa', 'prestasi_mandiri_id', 'nim')
+                    ->withPivot('urutan')
+                    ->orderByPivot('urutan');
     }
 
     /** Dosen pembimbing yang terlibat (pivot many-to-many + url_surat_tugas). */

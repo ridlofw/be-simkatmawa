@@ -56,8 +56,11 @@ class SertifikasiService
                 'created_by' => $user->id,
             ]));
 
-            $nimList = collect($mahasiswaData)->pluck('nim')->toArray();
-            $sertifikasi->mahasiswa()->attach($nimList);
+            $mahasiswaPivot = [];
+            foreach ($mahasiswaData as $index => $mhs) {
+                $mahasiswaPivot[$mhs['nim']] = ['urutan' => $index];
+            }
+            $sertifikasi->mahasiswa()->attach($mahasiswaPivot);
 
             $dosenPivot = [];
             foreach ($dosenData as $dosen) {
@@ -101,8 +104,11 @@ class SertifikasiService
 
             $sertifikasi->update($validated);
 
-            $nimList = collect($mahasiswaData)->pluck('nim')->toArray();
-            $sertifikasi->mahasiswa()->sync($nimList);
+            $mahasiswaPivot = [];
+            foreach ($mahasiswaData as $index => $mhs) {
+                $mahasiswaPivot[$mhs['nim']] = ['urutan' => $index];
+            }
+            $sertifikasi->mahasiswa()->sync($mahasiswaPivot);
 
             $dosenPivot = [];
             foreach ($dosenData as $dosen) {

@@ -41,10 +41,10 @@ class SyncService
     private function getDefaultHeaders(): array
     {
         return [
-            'User-Agent' => 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Mobile Safari/537.36',
+            'User-Agent' => 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Mobile Safari/537.36',
             'Accept' => 'application/json, text/plain, */*',
             'Accept-Language' => 'en-US,en;q=0.9,id;q=0.8',
-            'Cookie' => '_ga=GA1.3.1639260684.1765427123; _ga_8MJDZKZE0Z=GS2.1.s1765427123$o1$g0$t1765427730$j60$l0$h0; XSRF-TOKEN=eyJpdiI6ImZlak1hN3A4VFN2TUtPNXBoOFJ6RkE9PSIsInZhbHVlIjoiVDVaN3ErVGhXYVM2Smh2TDRHRHlmM24zU01VTTE0cFEyNjVzZmx6REVXTE05UlBtWTh1dG8rbWQ2UE83RjZBTTNTSkR0eXlhbkJXcE5zeExXMThJa0g1R2dLQUNtKzZxSk5vK0JzdW84NkJNbjNWWURFRnZBZ0JOMm4rWS9jR1IiLCJtYWMiOiI4ZmY1YTE1NTJlMGU4YTAwMWRiMzFmN2VkM2E2Y2U4MDZkN2M2MTVhYjRlYWQ2OWNkOWE0ZGFmMmIyOTY4OTgwIiwidGFnIjoiIn0%3D; simkatmawa-session=eyJpdiI6IjNLc2luTE1EcTZraXdEQ2xMSmNqaFE9PSIsInZhbHVlIjoiYmNuRThNbnd0RFV5S1lWOUdMZ0htMHRUbWVZTFlYRUk1KzFPUWZzVWZwTjgrcDhGdUk4THB1dEtxWm5KVk14VXpHbkp4S2tqdlNESFJ3aGZtWktLbU4yMkJpSDViRjFPSFhSd25UWWFtNGFiVGRmWDc0R3NGS3FPaU8vL0tQZlIiLCJtYWMiOiJlM2IxNzg3NzUzMWVkNjA0ZGQ5NDcyNzU0ZmQwMDQ3ZGM3YjEyOWY0ZWYwOWY2NzYyOTllMzYxZmIxMmRkYjNmIiwidGFnIjoiIn0%3D; cf_clearance=sl3uUevCeN.X9v5SyCNrOmvEXmaPl13Oo1FdQRzgfQM-1783996982-1.2.1.1-ibIdgvyYT9Ai1puysbw2LCXVm3I05QO1ZS_KjREO1.qfiQDrhwt3uM39vjxiNmjXvuzqqghdQOaKhSIC9WOQQ5PJ2s0NskVa_TmulPadDWAlJMQK579L_I3g7cpuJKcyJTQTVEQ6Y7F0XBiJ_GyL_kKI4nsxgwxEwFjhWIy_4bhy52EMVx6._rKlYGXzhq7dMOKdcsWnmBzSMtroigf47hl6Us2TGNU6hF0.TgYVhpeZ19mKjqwRVrPBUaOW.enLCjVDDKHqh55l6KapumHclAjNhq8FfxI7liJeTo7moDTTSZtxqKmyeiT2NaFNa2YnXmxZTPqhGrFL.hOljfa5fPReW2sfgG9Mu9XvyKAVXSuHlpNQ7ZLtJHZ1Qpxaii8qZHxaEh16TwpuMwP.RMbUuvUOFA1pmHu4E.2KTIJzjz.nvvMUXi5JRWyY2hIj3dL9epn8BeUUZ_aUBIp0_UbipzJleTXJHVohwVPZx3NzkktVIRa7Vg1Jbv8KOEhpz8mM',
+            'Cookie' => '',
         ];
     }
 

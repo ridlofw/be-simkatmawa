@@ -57,9 +57,12 @@ class Sertifikasi extends Model
 
     // ========== RELASI ==========
 
+    /** Mahasiswa yang terlibat (pivot many-to-many, diurutkan berdasarkan posisi: 0=Ketua). */
     public function mahasiswa(): BelongsToMany
     {
-        return $this->belongsToMany(Mahasiswa::class, 'sertifikasi_mahasiswa', 'sertifikasi_id', 'nim');
+        return $this->belongsToMany(Mahasiswa::class, 'sertifikasi_mahasiswa', 'sertifikasi_id', 'nim')
+                    ->withPivot('urutan')
+                    ->orderByPivot('urutan');
     }
 
     public function dosen(): BelongsToMany

@@ -105,9 +105,12 @@ class PrestasiService
                 'created_by' => $user->id,
             ]));
 
-            // 3. Attach mahasiswa ke pivot (nim saja, tanpa kolom tambahan)
-            $nimList = collect($mahasiswaData)->pluck('nim')->toArray();
-            $prestasi->mahasiswa()->attach($nimList);
+            // 3. Attach mahasiswa ke pivot (nim + urutan berdasarkan index array)
+            $mahasiswaPivot = [];
+            foreach ($mahasiswaData as $index => $mhs) {
+                $mahasiswaPivot[$mhs['nim']] = ['urutan' => $index];
+            }
+            $prestasi->mahasiswa()->attach($mahasiswaPivot);
 
             // 4. Attach dosen ke pivot (nuptk + url_surat_tugas sebagai pivot data)
             $dosenPivot = [];
@@ -180,8 +183,11 @@ class PrestasiService
             $prestasi->update($validated);
 
             // 4. Sync pivot tables (replace all existing with new data)
-            $nimList = collect($mahasiswaData)->pluck('nim')->toArray();
-            $prestasi->mahasiswa()->sync($nimList);
+            $mahasiswaPivot = [];
+            foreach ($mahasiswaData as $index => $mhs) {
+                $mahasiswaPivot[$mhs['nim']] = ['urutan' => $index];
+            }
+            $prestasi->mahasiswa()->sync($mahasiswaPivot);
 
             $dosenPivot = [];
             foreach ($dosenData as $dosen) {

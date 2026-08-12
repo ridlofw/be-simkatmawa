@@ -23,12 +23,6 @@ Route::middleware('role:admin|superadmin')->group(function () {
 
     Route::post('/verifikasi/{tipeKegiatan}/{id}', [VerifikasiController::class, 'verifikasi']);
 
-    // --- History Pengajuan ---
-    Route::prefix('history')->controller(\App\Http\Controllers\Api\V1\Admin\HistoryController::class)->group(function () {
-        Route::get('/{tipeKegiatan}', 'index');
-        Route::get('/{tipeKegiatan}/{id}', 'show');
-    });
-
     // --- Activity Log ---
     Route::prefix('activity-log')->controller(\App\Http\Controllers\Api\V1\Admin\ActivityLogController::class)->group(function () {
         Route::get('/', 'index');

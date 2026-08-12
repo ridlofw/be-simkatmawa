@@ -5,7 +5,7 @@ namespace App\Events;
 use App\Models\Notification;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
@@ -15,10 +15,10 @@ use Illuminate\Queue\SerializesModels;
  * FE (Next.js + Laravel Echo) listen ke:
  *   Echo.private(`notifications.${userId}`).listen('.notification.new', callback)
  *
- * Event ini implements ShouldBroadcast sehingga dikirim via queue worker,
- * tidak blocking request utama.
+ * Event ini implements ShouldBroadcastNow agar dikirim secara instan (synchronous) ke Reverb,
+ * tanpa delay polling antrean queue database.
  */
-class NotificationSent implements ShouldBroadcast
+class NotificationSent implements ShouldBroadcastNow
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 

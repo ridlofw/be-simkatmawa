@@ -8,17 +8,23 @@ use Illuminate\Support\Facades\Hash;
 
 /**
  * Service Layer — User Management Superadmin.
- * Mengelola CRUD pengguna, statistik, dan deaktivasi akun.
+ * Mengelola CRUD pengguna internal (admin & superadmin), statistik, dan deaktivasi akun.
+ *
+ * Akun mahasiswa TIDAK dikelola di sini — mahasiswa di-provisioning
+ * otomatis via SSO/API kampus saat pertama kali login.
  */
 class UserService
 {
     /**
-     * Ambil daftar pengguna dengan fitur pencarian dan filter.
+     * Ambil daftar pengguna internal (admin & superadmin) dengan fitur pencarian dan filter.
+     * Akun mahasiswa di-exclude karena dikelola via SSO/API kampus.
      */
     public function listUsers(int $limit, ?string $search, ?string $role, ?string $status): LengthAwarePaginator
     {
         // withTrashed agar user yang di-soft-delete (inactive) tetap muncul
-        $query = User::with('roles')->withTrashed();
+        $query = User::with('roles')
+            ->withTrashed()
+            ->whereDoesntHave('roles', fn ($q) => $q->where('name', 'mahasiswa'));
 
         if ($search) {
             $query->where(function ($q) use ($search) {
@@ -59,14 +65,15 @@ class UserService
     }
 
     /**
-     * Hitung statistik pengguna per role.
+     * Hitung statistik pengguna internal (admin & superadmin).
+     * Mahasiswa tidak termasuk — dikelola via SSO/API kampus.
      */
     public function getUserStats(): array
     {
         return [
+            'totalUsers' => User::whereDoesntHave('roles', fn ($q) => $q->where('name', 'mahasiswa'))->count(),
             'totalAdmin' => User::role('admin')->count(),
             'totalSuperadmin' => User::role('superadmin')->count(),
-            'totalMahasiswa' => User::role('mahasiswa')->count(),
         ];
     }
 
@@ -123,8 +130,9 @@ class UserService
 
     /**
      * Menonaktifkan (soft delete) pengguna.
+     * Hanya berlaku untuk akun internal (admin/superadmin).
      *
-     * @return array ['success' => bool, 'message' => string]
+     * @return array ['success' => bool, 'message' => string, 'code' => int]
      */
     public function deactivateUser(string $id, User $currentUser): array
     {
@@ -132,6 +140,11 @@ class UserService
 
         if (!$user) {
             return ['success' => false, 'message' => 'Pengguna tidak ditemukan atau sudah tidak aktif.', 'code' => 404];
+        }
+
+        // Guard: Akun mahasiswa tidak boleh di-deactivate dari sini
+        if ($user->hasRole('mahasiswa')) {
+            return ['success' => false, 'message' => 'Akun mahasiswa dikelola via sistem kampus dan tidak dapat dinonaktifkan dari sini.', 'code' => 403];
         }
 
         // Hindari menghapus diri sendiri

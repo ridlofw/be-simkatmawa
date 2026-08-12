@@ -5,14 +5,17 @@ use Illuminate\Support\Facades\Broadcast;
 
 /*
 |--------------------------------------------------------------------------
-| Broadcast Channels
+| Broadcast Channels & Auth Middleware
 |--------------------------------------------------------------------------
 |
 | Channel authorization untuk Laravel Reverb.
-| Private channel memastikan user hanya bisa listen ke notifikasi miliknya.
+| Menggunakan middleware auth:sanctum agar /broadcasting/auth dapat
+| memverifikasi Bearer Token dari Frontend (Next.js).
 |
 */
 
+Broadcast::routes(['middleware' => ['api', 'auth:sanctum']]);
+
 Broadcast::channel('notifications.{id}', function (User $user, string $id) {
-    return $user->id === $id;
+    return (string) $user->id === (string) $id;
 });
