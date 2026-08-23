@@ -38,13 +38,22 @@ class SyncService
         private readonly SyncQueueService $syncQueueService
     ) {}
 
+    /**
+     * Header standar untuk komunikasi API-to-API dengan Kemdiktisaintek.
+     *
+     * Sesuai dokumentasi resmi, hanya diperlukan:
+     * - Content-Type: application/json
+     * - Authorization: Bearer (ditangani oleh Http::withToken)
+     *
+     * Catatan historis: sebelumnya menggunakan fake User-Agent, Cookie
+     * (cf_clearance, XSRF-TOKEN, simkatmawa-session) sebagai workaround
+     * Cloudflare challenge. Per Agustus 2026, Cloudflare sudah tidak
+     * mencegat API routes sehingga header tersebut tidak diperlukan lagi.
+     */
     private function getDefaultHeaders(): array
     {
         return [
-            'User-Agent' => 'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Mobile Safari/537.36',
-            'Accept' => 'application/json, text/plain, */*',
-            'Accept-Language' => 'en-US,en;q=0.9,id;q=0.8',
-            'Cookie' => '',
+            'Accept' => 'application/json',
         ];
     }
 
