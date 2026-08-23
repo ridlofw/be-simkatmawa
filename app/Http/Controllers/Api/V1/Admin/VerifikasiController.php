@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Exports\PengajuanExport;
 use App\Services\Admin\VerifikasiService;
 use App\Traits\ApiResponse;
 use App\Traits\HasPagination;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Maatwebsite\Excel\Facades\Excel;
 
 /**
  * Controller Verifikasi Admin (Kontrak_API_Frontend.md §D).
@@ -50,6 +52,32 @@ class VerifikasiController extends Controller
                 'total'        => $paginated->total(),
             ]
         ]);
+    }
+
+    /**
+     * [GET] Export data pengajuan ke file Excel (.xlsx).
+     * Filter yang sama dengan index() diterapkan, tanpa paginasi.
+     */
+    public function export(Request $request, string $tipeKegiatan)
+    {
+        if (!$this->verifikasiService->isValidType($tipeKegiatan)) {
+            return $this->errorResponse("Tipe kegiatan '$tipeKegiatan' tidak valid.", 400);
+        }
+
+        $filters = $request->only([
+            'status', 'kategori', 'jenis_group', 'level', 'tahun',
+            'search', 'sort_by', 'sort_dir'
+        ]);
+
+        $data = $this->verifikasiService->getExportData($tipeKegiatan, $filters);
+
+        if ($data === null || $data->isEmpty()) {
+            return $this->errorResponse("Tidak ada data untuk di-export.", 404);
+        }
+
+        $filename = $this->buildFilename($tipeKegiatan, $filters);
+
+        return Excel::download(new PengajuanExport($tipeKegiatan, $data), $filename);
     }
 
     /**
@@ -115,5 +143,29 @@ class VerifikasiController extends Controller
         }
 
         return $this->successResponse(null, "Verifikasi berhasil diproses. Status menjadi $status.");
+    }
+
+    /**
+     * Build nama file Excel otomatis berdasarkan tipe dan filter aktif.
+     * Contoh: Prestasi_Mandiri_OLAHRAGA_PENDING_2026_20260823.xlsx
+     */
+    private function buildFilename(string $tipeKegiatan, array $filters): string
+    {
+        $parts = [match ($tipeKegiatan) {
+            'prestasi'    => 'Prestasi_Mandiri',
+            'rekognisi'   => 'Rekognisi',
+            'sertifikasi' => 'Sertifikasi',
+            default       => 'Data',
+        }];
+
+        if (!empty($filters['kategori']))    $parts[] = $filters['kategori'];
+        if (!empty($filters['jenis_group'])) $parts[] = ucfirst($filters['jenis_group']);
+        if (!empty($filters['status']) && $filters['status'] !== 'all') $parts[] = $filters['status'];
+        if (!empty($filters['level']))       $parts[] = $filters['level'];
+        if (!empty($filters['tahun']))       $parts[] = $filters['tahun'];
+
+        $parts[] = now()->format('Ymd');
+
+        return implode('_', $parts) . '.xlsx';
     }
 }

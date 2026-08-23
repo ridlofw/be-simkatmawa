@@ -91,6 +91,30 @@ class VerifikasiService
     }
 
     /**
+     * Ambil seluruh data pengajuan untuk export Excel (tanpa paginasi).
+     * Filter yang sama dengan getQueue() diterapkan.
+     *
+     * @param string $tipeKegiatan 'prestasi', 'rekognisi', atau 'sertifikasi'
+     * @param array $filters Query parameters dari request
+     * @return \Illuminate\Support\Collection|null null jika tipe kegiatan tidak valid
+     */
+    public function getExportData(string $tipeKegiatan, array $filters): ?\Illuminate\Support\Collection
+    {
+        $modelClass = $this->resolveModelClass($tipeKegiatan);
+
+        if (!$modelClass) {
+            return null;
+        }
+
+        $query = $modelClass::with(['mahasiswa', 'dosen', 'creator:id,name', 'approver:id,name']);
+
+        $config = $this->getFilterConfig($tipeKegiatan);
+        $query = $this->applyFilters($query, $filters, $config);
+
+        return $query->get();
+    }
+
+    /**
      * Ambil detail pengajuan untuk review.
      *
      * @return Model|null null jika data tidak ditemukan

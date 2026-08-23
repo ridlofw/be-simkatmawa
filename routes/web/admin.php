@@ -15,9 +15,10 @@ use App\Http\Controllers\Api\V1\Admin\DashboardController;
 
 Route::middleware('role:admin|superadmin')->group(function () {
 
-    // --- Verifikasi Pengajuan ---
+    // --- Daftar Pengajuan (Unified) ---
     Route::prefix('pengajuan')->controller(VerifikasiController::class)->group(function () {
         Route::get('/{tipeKegiatan}', 'index');
+        Route::get('/{tipeKegiatan}/export', 'export');  // HARUS sebelum /{id} agar tidak ter-capture
         Route::get('/{tipeKegiatan}/{id}', 'show');
     });
 
